@@ -1,0 +1,12 @@
+# Backups / arquivos antigos
+*OLD.js
+*old.js
+*antigo.js
+* - Copia.js
+
+# Lixo de sistema
+Thumbs.db
+Desktop.ini
+
+# Instalador gerado na hora
+*.cmd

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TwoElve — Toolbar</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="root">
+    <h3>TwoElve Toolbar</h3>
+    <div class="row">
+      <label class="switch">
+        <input id="toggle" type="checkbox">
+        <span class="slider"></span>
+      </label>
+      <span id="status">Carregando...</span>
+    </div>
+    <div class="actions">
+      <button id="show">Mostrar</button>
+      <button id="hide">Ocultar</button>
+      <button id="reset">Reset Posição</button>
+    </div>
+    <small class="hint">Abre a toolbar na aba ativa. As preferências são salvas.</small>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

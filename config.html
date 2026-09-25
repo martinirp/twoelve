@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Configurações</title>
+  <link rel="stylesheet" href="bootstrap.min.css" />
+  <link rel="stylesheet" href="config-page.css" />
+</head>
+<body>
+  <header class="topo">
+    <h1>⚙️ Configurações</h1>
+    <div class="acoes-topo">
+      <span id="versao-local" class="badge-steel">v?</span>
+      <button id="btn-atualizar" class="btn btn-update" data-bs-toggle="modal" data-bs-target="#modal-atualizar">🚀 ATUALIZAR</button>
+    </div>
+  </header>
+
+  <main class="container py-4">
+    <div class="row g-4">
+
+      <!-- ================= TEMA ================= -->
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="card steel h-100">
+          <div class="card-header">🎨 Tema</div>
+          <div class="card-body">
+            <label class="form-label" for="config-tema">Preset de tema</label>
+            <select id="config-tema" class="form-select">
+              <option value="personalizado">Personalizado</option>
+              <option value="padrao">Padrão (Retro)</option>
+              <option value="Library">Library</option>
+              <option value="Mint">Mint</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= FONTE ================= -->
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="card steel h-100">
+          <div class="card-header">🔤 Fonte</div>
+          <div class="card-body">
+            <label class="form-label" for="config-fonte">Família</label>
+            <select id="config-fonte" class="form-select"></select>
+
+            <label class="form-label mt-3" for="config-tamanho">Tamanho</label>
+            <select id="config-tamanho" class="form-select"></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= OPACIDADE ================= -->
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="card steel h-100">
+          <div class="card-header">👁️ Opacidade</div>
+          <div class="card-body">
+            <label class="form-label" for="config-opacidade">Transparência dos modais</label>
+            <input type="range" id="config-opacidade" class="form-range" min="0.5" max="1" step="0.01" />
+            <div class="valor-opacidade" id="opacidade-valor">100%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= CORES DA INTERFACE ================= -->
+      <div class="col-12 col-md-6">
+        <div class="card steel h-100">
+          <div class="card-header">🖌️ Cores da Interface</div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-4">
+                <label class="form-label">Fundo</label>
+                <button type="button" class="swatch-cor" data-alvo="fundo" title="Escolher cor"></button>
+                <span class="hex-mini" data-hex="fundo">#FFFFFF</span>
+              </div>
+              <div class="col-4">
+                <label class="form-label">Bordas</label>
+                <button type="button" class="swatch-cor" data-alvo="borda" title="Escolher cor"></button>
+                <span class="hex-mini" data-hex="borda">#000000</span>
+              </div>
+              <div class="col-4">
+                <label class="form-label">Texto</label>
+                <button type="button" class="swatch-cor" data-alvo="texto" title="Escolher cor"></button>
+                <span class="hex-mini" data-hex="texto">#1A1A1A</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= BOTÕES ================= -->
+      <div class="col-12 col-md-6">
+        <div class="card steel h-100">
+          <div class="card-header">🔘 Botões</div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-4">
+                <label class="form-label">Fundo</label>
+                <button type="button" class="swatch-cor" data-alvo="botaoFundo" title="Escolher cor"></button>
+                <span class="hex-mini" data-hex="botaoFundo">#FFFFFF</span>
+              </div>
+              <div class="col-4">
+                <label class="form-label">Borda</label>
+                <button type="button" class="swatch-cor" data-alvo="botaoBorda" title="Escolher cor"></button>
+                <span class="hex-mini" data-hex="botaoBorda">#000000</span>
+              </div>
+              <div class="col-4">
+                <label class="form-label">Texto</label>
+                <button type="button" class="swatch-cor" data-alvo="botaoTexto" title="Escolher cor"></button>
+                <span class="hex-mini" data-hex="botaoTexto">#1A1A1A</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= APRESENTAÇÃO ================= -->
+      <div class="col-12 col-md-6">
+        <div class="card steel h-100">
+          <div class="card-header">✨ Apresentação</div>
+          <div class="card-body">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="config-emotes" checked />
+              <label class="form-check-label" for="config-emotes">Usar emotes nos botões da toolbar</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= PREFERÊNCIAS ================= -->
+      <div class="col-12 col-md-6">
+        <div class="card steel h-100">
+          <div class="card-header">💾 Preferências</div>
+          <div class="card-body">
+            <p class="texto-fraco mb-3">
+              Exporta ou importa todas as configurações e dados da extensão
+              (botões, visitas, mensagens, encaminhamentos, temas…).
+            </p>
+            <div class="d-flex gap-2 flex-wrap">
+              <button id="btn-exportar" class="btn btn-export">📤 Exportar</button>
+              <button id="btn-importar" class="btn btn-import">📥 Importar</button>
+            </div>
+            <input type="file" id="file-import" accept=".json" style="display:none" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="rodape">
+    <div id="status-msg" class="status" hidden></div>
+  </footer>
+
+  <!-- ============ DIÁLOGO DE COR (centralizado) ============ -->
+  <div class="modal fade" id="modal-cor" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content steel">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-cor-titulo">🎨 Cor</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="preview-cor" id="preview-cor"></div>
+
+          <div class="hex-linha">
+            <span class="form-label mb-0">HEX</span>
+            <input type="text" id="hex-cor" class="form-control" maxlength="7" spellcheck="false" />
+          </div>
+
+          <div class="cor-rgb">
+            <div class="cor-slider">
+              <span class="form-label mb-0">R</span>
+              <input type="range" class="form-range" id="range-r" min="0" max="255" />
+              <span id="valor-r" class="valor-slider">0</span>
+            </div>
+            <div class="cor-slider">
+              <span class="form-label mb-0">G</span>
+              <input type="range" class="form-range" id="range-g" min="0" max="255" />
+              <span id="valor-g" class="valor-slider">0</span>
+            </div>
+            <div class="cor-slider">
+              <span class="form-label mb-0">B</span>
+              <input type="range" class="form-range" id="range-b" min="0" max="255" />
+              <span id="valor-b" class="valor-slider">0</span>
+            </div>
+          </div>
+
+          <div class="paleta-cor" id="paleta-cor"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-steel-outline" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-update" id="btn-aplicar-cor">Aplicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL DE ATUALIZAÇÃO ============ -->
+  <div class="modal fade" id="modal-atualizar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content steel">
+        <div class="modal-header">
+          <h5 class="modal-title">🚀 Atualizar extensão</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body">
+          <p class="texto-fraco">
+            Baixa a versão mais recente da extensão do repositório
+            <code>martinirp/twoelve</code> e substitui a atual através de um instalador.
+          </p>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="opcao-branch">
+                <input type="checkbox" id="check-use" checked />
+                <span class="opcao-box">
+                  <span class="opcao-check">✔</span>
+                  <span class="opcao-nome">Use <small>(main)</small></span>
+                  <span class="opcao-desc">Versão estável — instalada por padrão</span>
+                </span>
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="opcao-branch">
+                <input type="checkbox" id="check-dev" />
+                <span class="opcao-box">
+                  <span class="opcao-check">✔</span>
+                  <span class="opcao-nome">Dev <small>(desenvolvimento)</small></span>
+                  <span class="opcao-desc">Branch de desenvolvimento</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap mt-3">
+            <button id="btn-verificar" class="btn btn-steel-outline">🔍 Verificar versão</button>
+            <button id="btn-gerar-instalador" class="btn btn-update">🔄 ATUALIZAR</button>
+            <button id="btn-baixar-zip" class="btn btn-import">📦 Baixar ZIP</button>
+          </div>
+
+          <div id="update-status" class="status mt-3" hidden></div>
+
+          <ol id="passos" class="passos mt-3" hidden>
+            <li>Execute o arquivo <strong>instalar-twoelve.cmd</strong> que foi baixado.</li>
+            <li>Ele baixa e extrai o código da branch selecionada e substitui a pasta da extensão.</li>
+            <li>Na página <strong>chrome://extensions</strong> (aberta automaticamente), clique em <strong>Recarregar</strong> na extensão TwoElve.</li>
+          </ol>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-steel-outline" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="bootstrap.bundle.min.js"></script>
+  <script src="config-page.js"></script>
+</body>
+</html>

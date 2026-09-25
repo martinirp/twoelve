@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwoElve v6.0 — Documentação Técnica</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black: #0a0a0a;
+            --white: #fafafa;
+            --green: #10b981;
+            --green-dark: #059669;
+            --red: #ef4444;
+            --yellow: #f59e0b;
+            --blue: #3b82f6;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-400: #9ca3af;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --shadow-sm: 3px 3px 0px var(--black);
+            --shadow-md: 5px 5px 0px var(--black);
+            --shadow-lg: 8px 8px 0px var(--black);
+            --shadow-xl: 12px 12px 0px var(--black);
+            --border: 2px solid var(--black);
+            --mono: 'Space Mono', monospace;
+            --sans: 'DM Sans', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--white);
+            color: var(--black);
+            line-height: 1.7;
+        }
+
+        /* ── LAYOUT ── */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── SIDEBAR NAV ── */
+        .nav {
+            width: 280px;
+            min-height: 100vh;
+            background: var(--black);
+            color: var(--white);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-logo {
+            padding: 28px 24px 20px;
+            border-bottom: 2px solid #333;
+        }
+
+        .nav-logo h1 {
+            font-family: var(--mono);
+            font-size: 18px;
+            color: var(--green);
+            letter-spacing: -0.5px;
+        }
+
+        .nav-logo p {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+            font-family: var(--mono);
+        }
+
+        .nav-section-title {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #555;
+            padding: 20px 24px 8px;
+        }
+
+        .nav a {
+            display: block;
+            padding: 8px 24px;
+            font-size: 13px;
+            color: #aaa;
+            text-decoration: none;
+            font-family: var(--sans);
+            font-weight: 500;
+            transition: all 0.1s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav a:hover {
+            color: var(--white);
+            border-left-color: var(--green);
+            background: #111;
+        }
+
+        .nav a.active {
+            color: var(--green);
+            border-left-color: var(--green);
+            background: #111;
+        }
+
+        .nav-version {
+            margin-top: auto;
+            padding: 16px 24px;
+            border-top: 2px solid #222;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: #444;
+        }
+
+        /* ── MAIN ── */
+        .main {
+            flex: 1;
+            max-width: calc(100% - 280px);
+            overflow-x: hidden;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            background: var(--black);
+            color: var(--white);
+            padding: 64px 56px;
+            border-bottom: var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 400px; height: 400px;
+            background: repeating-linear-gradient(45deg, #111 0px, #111 1px, transparent 1px, transparent 8px);
+            opacity: 0.5;
+        }
+
+        .hero-tag {
+            display: inline-block;
+            background: var(--green);
+            color: var(--black);
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .hero h1 {
+            font-family: var(--mono);
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .hero h1 span { color: var(--green); }
+
+        .hero p {
+            font-size: 16px;
+            color: #aaa;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #111;
+            border: 1px solid #333;
+            padding: 6px 14px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        .hero-badge .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+        }
+
+        /* ── CONTENT ── */
+        .content {
+            padding: 0 56px 80px;
+        }
+
+        /* ── SECTION ── */
+        .section {
+            padding: 56px 0 0;
+            border-top: var(--border);
+            margin-top: 56px;
+        }
+
+        .section:first-child { border-top: none; margin-top: 0; }
+
+        .section-number {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--green);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .section h2 {
+            font-family: var(--mono);
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        h3 {
+            font-family: var(--mono);
+            font-size: 14px;
+            font-weight: 700;
+            margin: 32px 0 12px;
+            color: var(--green);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h4 {
+            font-family: var(--sans);
+            font-size: 15px;
+            font-weight: 700;
+            margin: 24px 0 10px;
+            color: var(--gray-800);
+        }
+
+        p { margin-bottom: 14px; font-size: 14px; color: var(--gray-800); }
+
+        /* ── CODE ── */
+        pre, code {
+            font-family: var(--mono);
+        }
+
+        .code-block {
+            background: #0d1117;
+            border: var(--border);
+            box-shadow: var(--shadow-md);
+            padding: 24px;
+            overflow-x: auto;
+            margin: 16px 0 24px;
+            position: relative;
+        }
+
+        .code-block .code-label {
+            position: absolute;
+            top: 0; right: 0;
+            background: var(--green);
+            color: var(--black);
+            font-size: 9px;
+            font-weight: 700;
+            padding: 3px 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .code-block pre {
+            font-size: 12px;
+            line-height: 1.8;
+            color: #e6edf3;
+            white-space: pre;
+        }
+
+        .c-kw  { color: #ff7b72; }   /* keywords */
+        .c-fn  { color: #d2a8ff; }   /* functions */
+        .c-str { color: #a5d6ff; }   /* strings */
+        .c-cm  { color: #8b949e; }   /* comments */
+        .c-nm  { color: #79c0ff; }   /* numbers / names */
+        .c-cl  { color: #ffa657; }   /* class names */
+        .c-op  { color: #ff7b72; }   /* operators */
+        .c-prop { color: #79c0ff; }  /* properties */
+
+        code {
+            background: #f1f5f9;
+            color: #dc2626;
+            padding: 2px 7px;
+            font-size: 12px;
+            border: 1px solid var(--gray-200);
+        }
+
+        /* ── CALLOUTS ── */
+        .callout {
+            border: var(--border);
+            padding: 16px 20px;
+            margin: 16px 0;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .callout::before {
+            position: absolute;
+            top: -1px; left: 16px;
+            font-family: var(--mono);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            transform: translateY(-50%);
+        }
+
+        .callout-info { background: #eff6ff; border-left: 4px solid var(--blue); }
+        .callout-info::before { content: 'INFO'; background: var(--blue); color: white; }
+
+        .callout-warn { background: #fffbeb; border-left: 4px solid var(--yellow); }
+        .callout-warn::before { content: 'ATENÇÃO'; background: var(--yellow); color: var(--black); }
+
+        .callout-ok { background: #f0fdf4; border-left: 4px solid var(--green); }
+        .callout-ok::before { content: 'CORRETO'; background: var(--green); color: white; }
+
+        .callout-err { background: #fef2f2; border-left: 4px solid var(--red); }
+        .callout-err::before { content: 'ERRO'; background: var(--red); color: white; }
+
+        .callout p { margin-bottom: 0; }
+        .callout ul { margin: 8px 0 0 20px; font-size: 13px; }
+        .callout li { margin-bottom: 4px; }
+
+        /* ── TABLE ── */
+        .table-wrap {
+            border: var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin: 16px 0 24px;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            background: var(--black);
+            color: var(--white);
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 12px 16px;
+            text-align: left;
+        }
+
+        td {
+            padding: 11px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--gray-200);
+            vertical-align: top;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) td { background: var(--gray-100); }
+
+        /* ── BADGES ── */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-ok  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .badge-warn { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .badge-err  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .badge-blue { background: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
+
+        /* ── DIAGRAM ── */
+        .diagram {
+            background: #0d1117;
+            border: var(--border);
+            box-shadow: var(--shadow-md);
+            padding: 32px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: #8b949e;
+            line-height: 2;
+            overflow-x: auto;
+            margin: 16px 0 24px;
+        }
+
+        .diagram .d-green { color: #56d364; }
+        .diagram .d-yellow { color: #e3b341; }
+        .diagram .d-blue { color: #79c0ff; }
+        .diagram .d-white { color: #f0f6fc; }
+        .diagram .d-red { color: #ff7b72; }
+
+        /* ── FLOW ── */
+        .flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 16px 0 24px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+        }
+
+        .flow-line {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40px;
+            flex-shrink: 0;
+        }
+
+        .flow-dot {
+            width: 16px; height: 16px;
+            background: var(--green);
+            border: 2px solid var(--black);
+            flex-shrink: 0;
+        }
+
+        .flow-connector {
+            width: 2px;
+            background: var(--black);
+            flex: 1;
+            min-height: 24px;
+        }
+
+        .flow-body {
+            flex: 1;
+            border: var(--border);
+            padding: 14px 18px;
+            margin-left: 0;
+            margin-bottom: 0;
+            box-shadow: var(--shadow-sm);
+            background: var(--white);
+        }
+
+        .flow-step:not(:last-child) .flow-body { margin-bottom: 0; }
+
+        .flow-body strong {
+            font-family: var(--mono);
+            font-size: 12px;
+            display: block;
+            margin-bottom: 4px;
+            color: var(--black);
+        }
+
+        .flow-body p { font-size: 12px; margin: 0; color: var(--gray-600); }
+
+        /* ── TWO-COL ── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .box {
+            border: var(--border);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .box h4 {
+            font-family: var(--mono);
+            font-size: 12px;
+            margin-bottom: 12px;
+            color: var(--green);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .box ul { margin-left: 18px; font-size: 12px; color: var(--gray-600); }
+        .box li { margin-bottom: 6px; line-height: 1.5; }
+
+        /* ── API CARD ── */
+        .api-card {
+            border: var(--border);
+            box-shadow: var(--shadow-sm);
+            margin: 12px 0;
+            overflow: hidden;
+        }
+
+        .api-card-header {
+            background: var(--gray-100);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: var(--border);
+        }
+
+        .api-method {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            background: var(--green);
+            color: white;
+        }
+
+        .api-name {
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .api-card-body {
+            padding: 14px 16px;
+            font-size: 13px;
+        }
+
+        .api-card-body p { margin-bottom: 8px; font-size: 13px; }
+
+        .api-params {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .api-param-row {
+            display: flex;
+            gap: 12px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--gray-200);
+            align-items: flex-start;
+        }
+
+        .api-param-name { font-family: var(--mono); color: var(--blue); min-width: 140px; font-size: 12px; }
+        .api-param-type { color: var(--gray-400); min-width: 80px; font-size: 11px; margin-top: 1px; }
+        .api-param-desc { color: var(--gray-600); flex: 1; }
+
+        /* ── STORAGE SCHEMA ── */
+        .schema {
+            border: var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .schema-header {
+            background: var(--black);
+            color: var(--green);
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 10px 16px;
+            letter-spacing: 1px;
+        }
+
+        .schema-row {
+            display: flex;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 12px;
+        }
+
+        .schema-row:last-child { border-bottom: none; }
+
+        .schema-key {
+            font-family: var(--mono);
+            color: var(--blue);
+            padding: 10px 16px;
+            min-width: 200px;
+            border-right: 1px solid var(--gray-200);
+            background: var(--gray-100);
+        }
+
+        .schema-type {
+            color: var(--gray-400);
+            padding: 10px 16px;
+            min-width: 100px;
+            border-right: 1px solid var(--gray-200);
+            font-family: var(--mono);
+        }
+
+        .schema-desc {
+            padding: 10px 16px;
+            color: var(--gray-600);
+            flex: 1;
+        }
+
+        /* ── CHECKLIST ── */
+        .checklist {
+            border: var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 13px;
+        }
+
+        .checklist-item:last-child { border-bottom: none; }
+
+        .check-box {
+            width: 18px; height: 18px;
+            border: 2px solid var(--black);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .check-box.done { background: var(--green); }
+
+        .check-box.done::after {
+            content: '✓';
+            display: block;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 14px;
+        }
+
+        /* ── BUG CARD ── */
+        .bug-card {
+            border: var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .bug-header {
+            display: flex;
+            gap: 0;
+        }
+
+        .bug-status {
+            background: var(--red);
+            color: white;
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 10px 14px;
+            writing-mode: horizontal-tb;
+            display: flex;
+            align-items: center;
+        }
+
+        .bug-status.fixed { background: var(--green); }
+
+        .bug-title {
+            padding: 10px 16px;
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 700;
+            background: var(--gray-100);
+            border-bottom: var(--border);
+            flex: 1;
+        }
+
+        .bug-body {
+            padding: 14px 16px;
+            font-size: 13px;
+        }
+
+        .bug-body p { margin-bottom: 8px; }
+        .bug-body strong { color: var(--black); }
+
+        /* ── HR ── */
+        hr {
+            border: none;
+            border-top: var(--border);
+            margin: 0;
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            background: var(--black);
+            color: #555;
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 24px 56px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: var(--border);
+        }
+
+        .footer span { color: var(--green); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .nav { display: none; }
+            .main { max-width: 100%; }
+            .content { padding: 0 24px 60px; }
+            .hero { padding: 40px 24px; }
+            .two-col { grid-template-columns: 1fr; }
+            .footer { padding: 20px 24px; flex-direction: column; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- ── NAV ── -->
+    <nav class="nav">
+        <div class="nav-logo">
+            <h1>TwoElve v6.0</h1>
+            <p>// documentação técnica</p>
+        </div>
+
+        <div class="nav-section-title">Arquitetura</div>
+        <a href="#visao-geral">01 — Visão Geral</a>
+        <a href="#arquivos">02 — Arquivos</a>
+        <a href="#manifest">03 — Manifest</a>
+        <a href="#ciclo">04 — Ciclo de Vida</a>
+
+        <div class="nav-section-title">Módulos</div>
+        <a href="#modalbase">05 — ModalBase</a>
+        <a href="#button">06 — Button.js</a>
+        <a href="#sidebar">07 — Sidebar.js</a>
+        <a href="#config">08 — Config.js</a>
+        <a href="#visit">09 — Visit.js</a>
+        <a href="#content">10 — Content.js</a>
+
+        <div class="nav-section-title">Referência</div>
+        <a href="#storage">11 — Storage</a>
+        <a href="#bugs">12 — Bugs Corrigidos</a>
+        <a href="#padrao">13 — Padrão de Código</a>
+        <a href="#checklist">14 — Checklist</a>
+        <a href="#proximos">15 — Próximos Passos</a>
+
+        <div class="nav-version">
+            versão 6.0.0 — 29/05/2026<br>
+            11 arquivos JS · ~5550 linhas
+        </div>
+    </nav>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+
+        <!-- HERO -->
+        <div class="hero">
+            <div class="hero-tag">DOCUMENTAÇÃO TÉCNICA COMPLETA</div>
+            <h1>TwoElve <span>v6.0</span></h1>
+            <p>Extensão de automação para a plataforma Elleven. Arquitetura unificada com <code style="background:#222;color:#10b981;padding:2px 7px;font-family:var(--mono);font-size:13px;">TwoelveModalBase</code>, gerenciamento central de modais e design neubrutalista.</p>
+            <div class="hero-badges">
+                <div class="hero-badge"><div class="dot"></div> 11 arquivos JS ativos</div>
+                <div class="hero-badge"><div class="dot"></div> Manifest v3</div>
+                <div class="hero-badge"><div class="dot"></div> Chrome Extension</div>
+                <div class="hero-badge"><div class="dot"></div> Toggle de modais</div>
+                <div class="hero-badge"><div class="dot"></div> Drag isolado no título</div>
+            </div>
+        </div>
+
+        <div class="content">
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 01 — VISÃO GERAL -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="visao-geral">
+                <div class="section-number">// 01</div>
+                <h2>Visão Geral da Arquitetura</h2>
+
+                <p>O TwoElve é uma extensão Chrome que injeta uma toolbar flutuante em qualquer página da plataforma Elleven. Cada botão da toolbar abre um modal específico. A v6.0 consolidou toda a lógica de modais em uma única classe base, resolvendo conflitos de duplos listeners, toggle inconsistente e botão X com comportamento errado.</p>
+
+                <div class="diagram">
+<pre><span class="d-white">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="d-white">│                        TOOLBAR (sidebar.js)                          │</span>
+<span class="d-white">│                                                                      │</span>
+<span class="d-white">│   [🛠️ Utils] [💬 Mensagens] [✅ Suporte] [🚗 Visita] [📤 Enc] [⚙️]  │</span>
+<span class="d-white">│                                                                      │</span>
+<span class="d-green">│   ✅ gerenciarModal(fn)  — único ponto de controle de toggle         │</span>
+<span class="d-green">│      • modalAberto !== null  → fecha e para                         │</span>
+<span class="d-green">│      • modalAberto === null  → chama fn(), captura via onFechar     │</span>
+<span class="d-white">└────────────────────────────┬────────────────────────────────────────┘</span>
+                             <span class="d-yellow">│ chama window.abrirModal*()</span>
+                             <span class="d-yellow">▼</span>
+<span class="d-white">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="d-white">│                    MÓDULOS (content.js / visit.js / config.js)       │</span>
+<span class="d-white">│                                                                      │</span>
+<span class="d-blue">│   abrirModalSuporte()    → content.js                               │</span>
+<span class="d-blue">│   abrirModalVisitas()    → visit.js                                  │</span>
+<span class="d-blue">│   abrirConfig()          → config.js                                 │</span>
+<span class="d-white">│                                                                      │</span>
+<span class="d-white">│   Cada módulo:                                                       │</span>
+<span class="d-white">│   1. new TwoelveModalBase(título)                                    │</span>
+<span class="d-white">│   2. modal.abrir()  → registra em window._ultimoModalAberto          │</span>
+<span class="d-white">│   3. modal.setConteudoElemento(dom)                                  │</span>
+<span class="d-white">│   4. modal.setFecharCallback(() => { ... })                          │</span>
+<span class="d-white">└────────────────────────────┬────────────────────────────────────────┘</span>
+                             <span class="d-yellow">│ instancia</span>
+                             <span class="d-yellow">▼</span>
+<span class="d-white">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="d-white">│                    MODAL BASE (modalbase.js)                          │</span>
+<span class="d-white">│                                                                      │</span>
+<span class="d-green">│   class TwoelveModalBase {                                           │</span>
+<span class="d-green">│     abrir()     → cria DOM, drag no título, registra global          │</span>
+<span class="d-green">│     fechar()    → remove DOM, dispara onFechar                       │</span>
+<span class="d-green">│     setConteudo(html)                                                │</span>
+<span class="d-green">│     setConteudoElemento(el)                                          │</span>
+<span class="d-green">│     setFecharCallback(fn)                                            │</span>
+<span class="d-green">│     setTitulo(str)                                                   │</span>
+<span class="d-green">│   }                                                                  │</span>
+<span class="d-white">└────────────────────────────┬────────────────────────────────────────┘</span>
+                             <span class="d-yellow">│ estilos</span>
+                             <span class="d-yellow">▼</span>
+<span class="d-white">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="d-white">│                    BUTTON.JS  +  CONFIG.JS                           │</span>
+<span class="d-white">│                                                                      │</span>
+<span class="d-white">│   button.js  → classes .twoelve-button, -primary, -danger           │</span>
+<span class="d-white">│   config.js  → CSS vars (fonte, cor, opacidade) via :root           │</span>
+<span class="d-white">└─────────────────────────────────────────────────────────────────────┘</span></pre>
+                </div>
+
+                <div class="callout callout-warn">
+                    <p><strong>Regra de ouro:</strong> cada módulo <strong>NÃO</strong> deve ter toggle interno (<code>if (modalAtivo) return</code>) nem registrar listener próprio no botão da toolbar. Quem gerencia toggle e conexão com a toolbar é exclusivamente o <code>sidebar.js</code>.</p>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 02 — ARQUIVOS -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="arquivos">
+                <div class="section-number">// 02</div>
+                <h2>Arquivos e Responsabilidades</h2>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Arquivo</th>
+                                <th>Responsabilidade</th>
+                                <th>Expõe global</th>
+                                <th>Depende de</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>modalbase.js</code></td>
+                                <td>Classe base para todos os modais. Cria DOM, gerencia drag pelo título, botão X isolado, registra <code>window._ultimoModalAberto</code>.</td>
+                                <td><code>window.TwoelveModalBase</code></td>
+                                <td>—</td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>button.js</code></td>
+                                <td>Injeta estilos CSS das classes de botão no <code>&lt;head&gt;</code>. Remove estilos antigos antes de re-injetar para evitar duplicação.</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>config.js</code></td>
+                                <td>UI de personalização (fonte, cores, opacidade). Exportação e importação de backup JSON. Aplica CSS vars globais em <code>:root</code>.</td>
+                                <td><code>window.abrirConfig</code></td>
+                                <td><code>TwoelveModalBase</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>sidebar.js</code></td>
+                                <td>Toolbar flutuante. Único ponto de controle de toggle via <code>gerenciarModal()</code>. Conecta botões às funções globais de cada módulo.</td>
+                                <td>—</td>
+                                <td>Todas as funções <code>window.abrir*</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>visit.js</code></td>
+                                <td>CRUD de visitas técnicas no <code>chrome.storage</code>. Modal principal (lista), modal de execução, modal de adicionar, modal de editar.</td>
+                                <td><code>window.abrirModalVisitas</code></td>
+                                <td><code>TwoelveModalBase</code>, <code>chrome.storage</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>messages.js</code></td>
+                                <td>CRUD de mensagens rápidas no <code>chrome.storage</code>. Modal principal (lista), adicionar e editar.</td>
+                                <td><code>window.abrirModalMensagens</code></td>
+                                <td><code>TwoelveModalBase</code>, <code>chrome.storage</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>forward.js</code></td>
+                                <td>CRUD de botões rápidos de encaminhamento. Lógica principal de encaminhamento para setores da plataforma.</td>
+                                <td><code>window.abrirModalEncaminhar</code></td>
+                                <td><code>TwoelveModalBase</code>, <code>chrome.storage</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>utils.js</code></td>
+                                <td>Login automático em roteadores (Huawei, FiberHome), painel do roteador via iframe oculto (Ghost Frame), processador de endereços e automações (TwoElveControle).</td>
+                                <td><code>window.abrirModalUtils</code>, <code>window.TwoElveControle</code></td>
+                                <td><code>TwoelveModalBase</code>, <code>chrome.storage</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>call.js</code></td>
+                                <td>Auto-atendedor de chamadas (atendimento automático de chamadas com ativação via clique direito no ícone do telefone).</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>auto.js</code></td>
+                                <td>Automação de novas abas (saudação automática em horário comercial) e remoção do overlay cinza.</td>
+                                <td><code>window.TwoElve</code></td>
+                                <td><code>window.TwoElveControle</code> (de <code>utils.js</code>)</td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>content.js</code></td>
+                                <td>Botões de suporte personalizados (CRUD). Automação da plataforma: categoria, relato, contexto, equipe, responsável, status, encaminhar/encerrar. Overlay de cópia de nome.</td>
+                                <td><code>window.abrirModalSuporte</code></td>
+                                <td><code>TwoelveModalBase</code>, <code>chrome.storage</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 03 — MANIFEST -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="manifest">
+                <div class="section-number">// 03</div>
+                <h2>Manifest.json — Ordem de Carregamento</h2>
+
+                <p>A ordem dos scripts no <code>manifest.json</code> é <strong>crítica</strong>. Cada arquivo depende do anterior já estar executado. Trocar a ordem causa erros de "TwoelveModalBase is not defined" ou "abrirConfig is not a function".</p>
+
+                <div class="code-block">
+                    <div class="code-label">manifest.json</div>
+                    <pre>{
+  <span class="c-prop">"manifest_version"</span>: <span class="c-nm">3</span>,
+  <span class="c-prop">"name"</span>: <span class="c-str">"TwoElve v6.0"</span>,
+  <span class="c-prop">"version"</span>: <span class="c-str">"6.0.0"</span>,
+  <span class="c-prop">"description"</span>: <span class="c-str">"Automação para plataforma Elleven"</span>,
+  <span class="c-prop">"permissions"</span>: [<span class="c-str">"storage"</span>],
+  <span class="c-prop">"host_permissions"</span>: [<span class="c-str">"&lt;all_urls&gt;"</span>],
+  <span class="c-prop">"content_scripts"</span>: [
+    {
+      <span class="c-prop">"matches"</span>: [<span class="c-str">"&lt;all_urls&gt;"</span>],
+      <span class="c-prop">"js"</span>: [
+        <span class="c-str">"modalbase.js"</span>,  <span class="c-cm">// 1º — define window.TwoelveModalBase</span>
+        <span class="c-str">"button.js"</span>,     <span class="c-cm">// 2º — injeta estilos de botão</span>
+        <span class="c-str">"config.js"</span>,     <span class="c-cm">// 3º — define window.abrirConfig</span>
+        <span class="c-str">"sidebar.js"</span>,    <span class="c-cm">// 4º — cria toolbar, conecta botões</span>
+        <span class="c-str">"visit.js"</span>,      <span class="c-cm">// 5º — define window.abrirModalVisitas</span>
+        <span class="c-str">"messages.js"</span>,   <span class="c-cm">// 6º — mensagens rápidas</span>
+        <span class="c-str">"forward.js"</span>,    <span class="c-cm">// 7º — lógica de encaminhamento</span>
+        <span class="c-str">"utils.js"</span>,      <span class="c-cm">// 8º — auto-login, roteadores, TwoElveControle</span>
+        <span class="c-str">"auto.js"</span>,       <span class="c-cm">// 9º — monitoramento de abas / saudação</span>
+        <span class="c-str">"content.js"</span>     <span class="c-cm">// 10º — suporte geral, overlay de nome</span>
+      ],
+      <span class="c-prop">"run_at"</span>: <span class="c-str">"document_end"</span>
+    },
+    {
+      <span class="c-prop">"matches"</span>: [<span class="c-str">"https://elonet.native-infinity.com.br/*"</span>],
+      <span class="c-prop">"js"</span>: [<span class="c-str">"call.js"</span>],
+      <span class="c-prop">"run_at"</span>: <span class="c-str">"document_end"</span>
+    }
+  ]
+}</pre>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Posição</th><th>Arquivo</th><th>Por que esta posição</th></tr></thead>
+                        <tbody>
+                            <tr><td>1º</td><td><code>modalbase.js</code></td><td>Todos os outros criam instâncias de <code>TwoelveModalBase</code>. Deve existir primeiro.</td></tr>
+                            <tr><td>2º</td><td><code>button.js</code></td><td>Injeta CSS de botões antes de qualquer modal ser aberto.</td></tr>
+                            <tr><td>3º</td><td><code>config.js</code></td><td>Carrega configurações e aplica CSS vars antes da toolbar aparecer.</td></tr>
+                            <tr><td>4º</td><td><code>sidebar.js</code></td><td>Cria a toolbar. Quando os módulos seguintes expõem suas funções, a toolbar já existe para conectar.</td></tr>
+                            <tr><td>5º</td><td><code>visit.js</code></td><td>Expõe <code>window.abrirModalVisitas</code> após a toolbar já estar no DOM.</td></tr>
+                            <tr><td>6º</td><td><code>messages.js</code></td><td>Expõe <code>window.abrirModalMensagens</code>.</td></tr>
+                            <tr><td>7º</td><td><code>forward.js</code></td><td>Expõe <code>window.abrirModalEncaminhar</code>.</td></tr>
+                            <tr><td>8º</td><td><code>utils.js</code></td><td>Expõe <code>window.abrirModalUtils</code> e inicializa <code>window.TwoElveControle</code>.</td></tr>
+                            <tr><td>9º</td><td><code>auto.js</code></td><td>Inicializa o monitor de abas e a saudação automática.</td></tr>
+                            <tr><td>10º</td><td><code>content.js</code></td><td>Expõe <code>window.abrirModalSuporte</code> e inicializa overlay de cópia de nome.</td></tr>
+                            <tr><td>11º (Restrito)</td><td><code>call.js</code></td><td>Inicializa o auto-atendedor de chamadas (carregado apenas em <code>elonet.native-infinity.com.br</code>).</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 04 — CICLO DE VIDA -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="ciclo">
+                <div class="section-number">// 04</div>
+                <h2>Ciclo de Vida — Abertura e Fechamento de Modal</h2>
+
+                <p>Entender exatamente o que acontece em cada clique é essencial para depurar e para criar novos módulos corretamente.</p>
+
+                <h3>Fluxo: Usuário clica em "✅ Suporte" (modal fechado)</h3>
+
+                <div class="flow">
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+                        <div class="flow-body">
+                            <strong>1. sidebar.js — listener do botão</strong>
+                            <p>O clique dispara o listener registrado no <code>document_end</code>. Ele chama <code>gerenciarModal(() =&gt; window.abrirModalSuporte())</code>.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+                        <div class="flow-body">
+                            <strong>2. gerenciarModal — verifica estado</strong>
+                            <p><code>modalAberto === null</code>, então prossegue. Faz <code>await funcaoAbrir()</code>, aguardando a Promise de <code>abrirModalSuporte</code>.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+                        <div class="flow-body">
+                            <strong>3. content.js — abrirModalSuporte()</strong>
+                            <p>Carrega botões do storage (<code>await carregarCustomButtons()</code>), cria <code>new TwoelveModalBase('✅ Botões de Suporte')</code>, armazena em <code>modalAtivo</code>, chama <code>modal.abrir()</code>.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+                        <div class="flow-body">
+                            <strong>4. TwoelveModalBase.abrir()</strong>
+                            <p>Cria o DOM do modal (container, header, título, botão X, body). Registra <code>window._ultimoModalAberto = this</code>. Adiciona ao <code>document.body</code>. Ativa drag no elemento do título.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+                        <div class="flow-body">
+                            <strong>5. gerenciarModal — captura referência</strong>
+                            <p>Após o <code>await</code> retornar, lê <code>window._ultimoModalAberto</code> e armazena em <code>modalAberto</code>. Encadeia no <code>onFechar</code> para zerar <code>modalAberto</code> quando o modal fechar.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div></div>
+                        <div class="flow-body">
+                            <strong>6. Modal visível</strong>
+                            <p>O modal está no DOM, <code>modalAberto</code> no sidebar aponta para a instância, <code>modalAtivo</code> em content.js também. Ambos prontos para fechar.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Fluxo: Usuário clica em "✅ Suporte" novamente (toggle — modal aberto)</h3>
+
+                <div class="flow">
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+                        <div class="flow-body">
+                            <strong>1. gerenciarModal — verifica estado</strong>
+                            <p><code>modalAberto !== null</code>. Chama <code>modalAberto.fechar()</code> e seta <code>modalAberto = null</code>. Retorna sem abrir nada.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+                        <div class="flow-body">
+                            <strong>2. TwoelveModalBase.fechar()</strong>
+                            <p>Remove os event listeners de drag. Remove <code>this.container</code> do DOM. Dispara <code>this.onFechar()</code> se definido.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-line"><div class="flow-dot"></div></div>
+                        <div class="flow-body">
+                            <strong>3. onFechar — limpeza em cascata</strong>
+                            <p>O callback encadeado pelo sidebar zera <code>modalAberto = null</code>. O callback original do módulo (<code>setFecharCallback</code>) zera <code>modalAtivo = null</code>. Estado limpo.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Fluxo: Usuário clica no botão X</h3>
+
+                <div class="code-block">
+                    <div class="code-label">modalbase.js — evento do X</div>
+                    <pre><span class="c-cm">// closeBtn.onclick: chama this.fechar() diretamente na instância</span>
+<span class="c-kw">this</span>.closeBtn.onclick = (e) => {
+    e.stopPropagation();   <span class="c-cm">// impede propagação para o header</span>
+    e.preventDefault();
+    <span class="c-kw">this</span>.fechar();         <span class="c-cm">// dispara fechar() na instância</span>
+};
+
+<span class="c-cm">// fechar() lê this.onFechar — que foi sobrescrito pelo sidebar</span>
+fechar() {
+    <span class="c-kw">if</span> (<span class="c-kw">this</span>.container) {
+        <span class="c-kw">this</span>._removeDragEvents();
+        <span class="c-kw">this</span>.container.remove();
+        <span class="c-kw">this</span>.container = <span class="c-kw">null</span>;
+
+        <span class="c-kw">if</span> (<span class="c-kw">this</span>.onFechar) {
+            <span class="c-kw">this</span>.onFechar();  <span class="c-cm">// dispara callback encadeado → zera modalAberto</span>
+        }
+    }
+}</pre>
+                </div>
+
+                <div class="callout callout-info">
+                    <p><strong>Por que o X funcionava com 2 cliques antes?</strong> Havia dois listeners no botão Suporte: um do sidebar e um da <code>conectarComToolbar()</code> em content.js. O primeiro clique no X fechava o modal, mas o segundo handler tentava abrir de volta. O segundo clique "cancelava" essa reabertura. Solução: remover <code>conectarComToolbar()</code> completamente.</p>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 05 — MODALBASE -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="modalbase">
+                <div class="section-number">// 05</div>
+                <h2>modalbase.js — Classe Base</h2>
+
+                <p>Define <code>window.TwoelveModalBase</code>, a única classe usada para criar modais em toda a extensão. Encapsula criação de DOM, estilo, drag e callbacks.</p>
+
+                <h3>Estrutura do DOM gerado</h3>
+
+                <div class="code-block">
+                    <div class="code-label">DOM</div>
+                    <pre><span class="c-cm">&lt;!-- Inserido em document.body --&gt;</span>
+&lt;<span class="c-kw">div</span> <span class="c-prop">class</span>=<span class="c-str">"twoelve-modal-container"</span>&gt;
+
+  &lt;<span class="c-kw">div</span> <span class="c-prop">class</span>=<span class="c-str">"twoelve-modal-header"</span>&gt;
+
+    &lt;<span class="c-kw">div</span> <span class="c-prop">class</span>=<span class="c-str">"twoelve-modal-title"</span>&gt;        <span class="c-cm">&lt;!-- cursor: move; drag ativo --&gt;</span>
+      📌 Título do Modal
+    &lt;/<span class="c-kw">div</span>&gt;
+
+    &lt;<span class="c-kw">button</span> <span class="c-prop">class</span>=<span class="c-str">"twoelve-modal-close"</span>&gt;    <span class="c-cm">&lt;!-- X — stopPropagation no mousedown --&gt;</span>
+      ✕
+    &lt;/<span class="c-kw">button</span>&gt;
+
+  &lt;/<span class="c-kw">div</span>&gt;
+
+  &lt;<span class="c-kw">div</span> <span class="c-prop">class</span>=<span class="c-str">"twoelve-modal-body"</span>&gt;
+    &lt;<span class="c-kw">div</span> <span class="c-prop">class</span>=<span class="c-str">"twoelve-modal-content"</span>&gt;   <span class="c-cm">&lt;!-- área de conteúdo --&gt;</span>
+      <span class="c-cm">&lt;!-- innerHTML ou elemento DOM inserido aqui --&gt;</span>
+    &lt;/<span class="c-kw">div</span>&gt;
+  &lt;/<span class="c-kw">div</span>&gt;
+
+&lt;/<span class="c-kw">div</span>&gt;</pre>
+                </div>
+
+                <h3>API completa</h3>
+
+                <div class="api-card">
+                    <div class="api-card-header">
+                        <span class="api-method">new</span>
+                        <span class="api-name">TwoelveModalBase(titulo?)</span>
+                    </div>
+                    <div class="api-card-body">
+                        <p>Cria uma nova instância. Não abre o modal ainda — apenas inicializa o objeto.</p>
+                        <div class="api-params">
+                            <div class="api-param-row">
+                                <span class="api-param-name">titulo</span>
+                                <span class="api-param-type">string?</span>
+                                <span class="api-param-desc">Texto do cabeçalho. Pode incluir emoji. Padrão: <code>'TwoElve'</code>.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-card-header">
+                        <span class="api-method">método</span>
+                        <span class="api-name">modal.abrir() → this</span>
+                    </div>
+                    <div class="api-card-body">
+                        <p>Cria o DOM do modal, insere em <code>document.body</code>, ativa o drag no título e registra <code>window._ultimoModalAberto = this</code>. Se o modal já estiver aberto, chama <code>fechar()</code> antes de reabrir (proteção contra dupla abertura). Retorna <code>this</code> para encadeamento.</p>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-card-header">
+                        <span class="api-method">método</span>
+                        <span class="api-name">modal.fechar() → this</span>
+                    </div>
+                    <div class="api-card-body">
+                        <p>Remove event listeners de drag de <code>window</code>, remove o container do DOM, dispara <code>onFechar()</code> e desregistra de <code>window._ultimoModalAberto</code>. Retorna <code>this</code>.</p>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-card-header">
+                        <span class="api-method">método</span>
+                        <span class="api-name">modal.setConteudo(html) → this</span>
+                    </div>
+                    <div class="api-card-body">
+                        <p>Define o conteúdo do corpo do modal usando uma string HTML. Útil para estruturas estáticas ou injetadas diretamente.</p>
+                        <div class="api-params">
+                            <div class="api-param-row">
+                                <span class="api-param-name">html</span>
+                                <span class="api-param-type">string</span>
+                                <span class="api-param-desc">HTML a ser atribuído a <code>.twoelve-modal-content</code> via <code>innerHTML</code>.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-card-header">
+                        <span class="api-method">método</span>
+                        <span class="api-name">modal.setConteudoElemento(el) → this</span>
+                    </div>
+                    <div class="api-card-body">
+                        <p>Define o conteúdo usando um nó DOM real. Excelente para manter referências a listeners JavaScript anexados.</p>
+                        <div class="api-params">
+                            <div class="api-param-row">
+                                <span class="api-param-name">el</span>
+                                <span class="api-param-type">HTMLElement</span>
+                                <span class="api-param-desc">Elemento DOM a ser inserido. Limpa o corpo antes de inserir.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-card-header">
+                        <span class="api-method">método</span>
+                        <span class="api-name">modal.setFecharCallback(fn) → this</span>
+                    </div>
+                    <div class="api-card-body">
+                        <p>Registra uma função a ser chamada quando o modal for destruído (pelo botão X, pelo toggle da barra ou por fechamento manual programático).</p>
+                        <div class="api-params">
+                            <div class="api-param-row">
+                                <span class="api-param-name">fn</span>
+                                <span class="api-param-type">function</span>
+                                <span class="api-param-desc">Callback executado em <code>fechar()</code>.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="api-card">
+                    <div class="api-card-header">
+                        <span class="api-method">método</span>
+                        <span class="api-name">modal.setTitulo(titulo) → this</span>
+                    </div>
+                    <div class="api-card-body">
+                        <p>Altera dinamicamente o título exibido no cabeçalho do modal sem precisar fechar ou reconstruir.</p>
+                        <div class="api-params">
+                            <div class="api-param-row">
+                                <span class="api-param-name">titulo</span>
+                                <span class="api-param-type">string</span>
+                                <span class="api-param-desc">Novo texto/HTML do cabeçalho.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Regras de Estilo Padrão em modalbase.js</h3>
+                <p>O arquivo define estilos padrão aplicados a qualquer elemento inserido no corpo do modal:</p>
+                <ul>
+                    <li>Inputs, Textareas e Selects têm fundo cinza claro (<code>#cccccc</code>) e borda de <code>2px</code> preta para contraste.</li>
+                    <li>Ao receber foco (<code>:focus</code>), ganham borda verde (<code>#10b981</code>).</li>
+                    <li>Todo texto é herdado da fonte configurada em `config.js` via variáveis CSS no `:root`.</li>
+                </ul>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 06 — BUTTON -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="button">
+                <div class="section-number">// 06</div>
+                <h2>button.js — Padrão Visual Neubrutalista</h2>
+
+                <p>O [button.js](button.js) padroniza o visual de todos os botões que aparecem em modais criados pela extensão. Ele garante a consistência visual do Neubrutalismo.</p>
+
+                <div class="two-col">
+                    <div class="box">
+                        <h4>Classes Disponíveis</h4>
+                        <ul>
+                            <li><code>.twoelve-button</code>: Botão padrão (fundo branco, borda de 2px preta, sombra sólida preta de 3px).</li>
+                            <li><code>.twoelve-button-primary</code>: Botão de ação positiva (fundo verde <code>#10b981</code>, texto branco).</li>
+                            <li><code>.twoelve-button-danger</code>: Botão de ação destrutiva (fundo vermelho <code>#ef4444</code>, texto branco).</li>
+                            <li><code>.twoelve-modal-close</code>: Botão de fechar (fundo branco, menor, sem herança de reset de botões gerais).</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>Comportamentos Visuais</h4>
+                        <ul>
+                            <li><strong>Hover geral:</strong> Fundo listrado animado (cinza e cinza escuro), borda muda para verde <code>#10b981</code>, o botão se move <code>-2px</code> em diagonal e a sombra cresce para <code>5px</code>.</li>
+                            <li><strong>Hover no Primary:</strong> Fundo muda para verde escuro <code>#059669</code>.</li>
+                            <li><strong>Hover no Danger:</strong> Fundo muda para vermelho escuro <code>#dc2626</code>.</li>
+                            <li><strong>Active (Clique):</strong> O botão se move <code>+1px</code> em diagonal e a sombra encolhe para <code>1px</code>, dando a sensação física de pressionamento.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Comportamento do Grid</h3>
+                <p>A classe <code>.twoelve-buttons-grid</code> organiza botões em colunas responsivas que se ajustam automaticamente ao tamanho do modal. Ela usa CSS Grid:</p>
+                <div class="code-block">
+                    <div class="code-label">CSS Grid</div>
+                    <pre><span class="c-cl">.twoelve-buttons-grid</span> {
+    <span class="c-prop">display</span>: grid;
+    <span class="c-prop">grid-template-columns</span>: <span class="c-fn">repeat</span>(auto-fill, <span class="c-fn">minmax</span>(<span class="c-nm">140px</span>, <span class="c-nm">1fr</span>));
+    <span class="c-prop">gap</span>: <span class="c-nm">12px</span>;
+    <span class="c-prop">padding</span>: <span class="c-nm">4px</span>;
+}</pre>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 07 — SIDEBAR -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="sidebar">
+                <div class="section-number">// 07</div>
+                <h2>sidebar.js — Painel de Controle e Toggle Único</h2>
+
+                <p>O [sidebar.js](sidebar.js) é o coração organizacional da extensão. Ele cria a barra de ferramentas flutuante no topo e garante que <strong>nunca existam dois modais abertos ao mesmo tempo</strong>.</p>
+
+                <h3>Código do Gerenciador de Modais</h3>
+                <p>A função <code>gerenciarModal()</code> gerencia o estado global de modal aberto:</p>
+
+                <div class="code-block">
+                    <div class="code-label">sidebar.js — gerenciarModal</div>
+                    <pre><span class="c-kw">let</span> modalAberto = <span class="c-kw">null</span>;
+
+<span class="c-kw">async function</span> <span class="c-fn">gerenciarModal</span>(funcaoAbrir) {
+    <span class="c-cm">// 1. Se já existe um modal aberto, fecha ele e encerra o fluxo</span>
+    <span class="c-kw">if</span> (modalAberto) {
+        modalAberto.<span class="c-fn">fechar</span>();
+        modalAberto = <span class="c-kw">null</span>;
+        <span class="c-kw">return</span>;
+    }
+    
+    <span class="c-cm">// 2. Se não há modal aberto, chama a função para abrir o novo</span>
+    <span class="c-kw">await</span> <span class="c-fn">funcaoAbrir</span>();
+    
+    <span class="c-cm">// 3. Captura a instância que se registrou globalmente ao abrir</span>
+    <span class="c-kw">if</span> (window._ultimoModalAberto) {
+        modalAberto = window._ultimoModalAberto;
+        
+        <span class="c-cm">// 4. Intercepta o callback de fechamento para limpar a variável local</span>
+        <span class="c-kw">const</span> callbackOriginal = modalAberto.onFechar;
+        modalAberto.onFechar = () => {
+            modalAberto = <span class="c-kw">null</span>;       <span class="c-cm">// limpa referência local</span>
+            <span class="c-kw">if</span> (callbackOriginal) <span class="c-fn">callbackOriginal</span>();  <span class="c-cm">// chama limpeza do módulo</span>
+        };
+    }
+}</pre>
+                </div>
+
+                <h3>Configuração de Emotes</h3>
+                <p>Lê a chave <code>twoelveConfig</code> do storage local. Se <code>usarEmotes</code> for <code>false</code>, remove emojis dos botões da barra, mantendo apenas o texto limpo (ex: "Utils" em vez de "🛠️ Utils"). A barra reage em tempo real quando o usuário salva as configurações no modal Config.</p>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 08 — CONFIG -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="config">
+                <div class="section-number">// 08</div>
+                <h2>config.js — Personalização e Backup Unificado</h2>
+
+                <p>O [config.js](config.js) permite alterar as variáveis CSS globais de cores, fontes e opacidade, além de gerenciar a importação e exportação de backups.</p>
+
+                <h3>Como a Personalização funciona em Tempo Real</h3>
+                <p>Quando as configurações são carregadas ou salvas, o script injeta um elemento <code>&lt;style id="twoelve-config-styles"&gt;</code> na página, atualizando variáveis em <code>:root</code>:</p>
+
+                <div class="code-block">
+                    <div class="code-label">CSS Vars Geradas</div>
+                    <pre><span class="c-cl">:root</span> {
+    <span class="c-prop">--modal-custom-font-size</span>: <span class="c-str">"14px"</span>;
+    <span class="c-prop">--modal-custom-font-family</span>: <span class="c-str">"'Inter', sans-serif"</span>;
+    <span class="c-prop">--modal-custom-bg</span>: <span class="c-str">"#ffffff"</span>;
+    <span class="c-prop">--modal-custom-border</span>: <span class="c-str">"#000000"</span>;
+    <span class="c-prop">--modal-custom-text</span>: <span class="c-str">"#1a1a1a"</span>;
+    <span class="c-prop">--modal-custom-opacity</span>: <span class="c-nm">1</span>;
+}</pre>
+                </div>
+
+                <h3>Estrutura do Arquivo de Backup JSON</h3>
+                <p>O backup consolida <strong>todos</strong> os dados do storage local da extensão. O arquivo exportado segue esta estrutura:</p>
+
+                <div class="code-block">
+                    <div class="code-label">Backup JSON</div>
+                    <pre>{
+  <span class="c-prop">"exportadoEm"</span>: <span class="c-str">"2026-05-29T23:12:00.000Z"</span>,
+  <span class="c-prop">"versao"</span>: <span class="c-str">"1.0"</span>,
+  <span class="c-prop">"dados"</span>: {
+    <span class="c-prop">"customButtons"</span>: [...],        <span class="c-cm">// botões rápidos de suporte</span>
+    <span class="c-prop">"customVisits"</span>: [...],         <span class="c-cm">// modelos de visitas técnicas</span>
+    <span class="c-prop">"whitePanelMessages"</span>: [...],   <span class="c-cm">// mensagens rápidas</span>
+    <span class="c-prop">"forwardButtons"</span>: [...],       <span class="c-cm">// botões de encaminhamento</span>
+    <span class="c-prop">"twoelveConfig"</span>: {             <span class="c-cm">// cores, fontes e opacidade</span>
+      <span class="c-prop">"fonte"</span>: { <span class="c-prop">"familia"</span>: <span class="c-str">"Inter"</span>, <span class="c-prop">"tamanho"</span>: <span class="c-str">"14px"</span> },
+      <span class="c-prop">"cores"</span>: { <span class="c-prop">"fundo"</span>: <span class="c-str">"#ffffff"</span>, <span class="c-prop">"borda"</span>: <span class="c-str">"#000000"</span>, ... },
+      <span class="c-prop">"opacidade"</span>: <span class="c-nm">1</span>,
+      <span class="c-prop">"usarEmotes"</span>: <span class="c-kw">true</span>
+    }
+  }
+}</pre>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 09 — VISIT -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="visit">
+                <div class="section-number">// 09</div>
+                <h2>visit.js — Controle de Visitas Técnicas</h2>
+
+                <p>O [visit.js](visit.js) gerencia a criação, edição e preenchimento de visitas técnicas ou solicitações de mudança de endereço.</p>
+
+                <h3>Lógica de Preenchimento Automático de Endereço</h3>
+                <p>Ao executar uma visita do tipo "mudança", a extensão procura os inputs correspondentes no formulário ativo da plataforma Elleven:</p>
+
+                <div class="code-block">
+                    <div class="code-label">visit.js — preencherEndereco</div>
+                    <pre><span class="c-kw">const</span> ruaEl = <span class="c-kw">await</span> <span class="c-fn">waitForElement</span>(<span class="c-str">'input#publicPlace'</span>, <span class="c-nm">5000</span>);
+<span class="c-kw">if</span> (ruaEl) <span class="c-fn">setValue</span>(ruaEl, rua);
+
+<span class="c-kw">const</span> numeroEl = <span class="c-kw">await</span> <span class="c-fn">waitForElement</span>(<span class="c-str">'input#number'</span>, <span class="c-nm">3000</span>);
+<span class="c-kw">if</span> (numeroEl) <span class="c-fn">setValue</span>(numeroEl, numero);
+
+<span class="c-kw">const</span> bairroEl = <span class="c-kw">await</span> <span class="c-fn">waitForElement</span>(<span class="c-str">'input#neighborhood'</span>, <span class="c-nm">3000</span>);
+<span class="c-kw">if</span> (bairroEl) <span class="c-fn">setValue</span>(bairroEl, bairro);</pre>
+                </div>
+
+                <div class="callout callout-info">
+                    <p>O campo **Contexto** no modal de execução de visitas é renderizado como **Apenas Leitura (disabled)** para garantir que o usuário preencha o contexto original definido no template do botão, mantendo a consistência dos dados inseridos.</p>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 10 — CONTENT -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="content">
+                <div class="section-number">// 10</div>
+                <h2>content.js — Automação de Suporte e Cópia Rápida</h2>
+
+                <p>O [content.js](content.js) automatiza ações em formulários da plataforma Elleven e injeta recursos úteis na tela do cliente.</p>
+
+                <h3>Atalho de Cópia Rápida de Nome</h3>
+                <p>Procura elementos que indicam o nome do cliente. Adiciona uma borda pontilhada azul ao passar o mouse. Um clique no nome copia o texto para a área de transferência com feedback visual temporário.</p>
+
+                <h3>Automação de Formulário</h3>
+                <p>Utiliza seletores e funções utilitárias como <code>selecionarValor</code> e <code>escreverRelato</code> para selecionar automaticamente categorias, status e motivos.</p>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 11 — STORAGE -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="storage">
+                <div class="section-number">// 11</div>
+                <h2>Esquema de Armazenamento (Storage Schema)</h2>
+
+                <p>A extensão usa <code>chrome.storage.local</code> para armazenar configurações e dados do usuário.</p>
+
+                <div class="schema">
+                    <div class="schema-header">chrome.storage.local Schema</div>
+                    
+                    <div class="schema-row">
+                        <div class="schema-key">twoelveConfig</div>
+                        <div class="schema-type">Object</div>
+                        <div class="schema-desc">Configurações de personalização visual (fontes, cores, opacidade e opção de emotes).</div>
+                    </div>
+                    
+                    <div class="schema-row">
+                        <div class="schema-key">customButtons</div>
+                        <div class="schema-type">Array</div>
+                        <div class="schema-desc">Lista de botões personalizados cadastrados pelo módulo de Suporte.</div>
+                    </div>
+                    
+                    <div class="schema-row">
+                        <div class="schema-key">customVisits</div>
+                        <div class="schema-type">Array</div>
+                        <div class="schema-desc">Lista de modelos de visitas técnicas cadastradas pelo módulo de Visitas.</div>
+                    </div>
+                    
+                    <div class="schema-row">
+                        <div class="schema-key">whitePanelMessages</div>
+                        <div class="schema-type">Array</div>
+                        <div class="schema-desc">Mensagens rápidas salvas para inserção direta no chat de suporte.</div>
+                    </div>
+                    
+                    <div class="schema-row">
+                        <div class="schema-key">forwardButtons</div>
+                        <div class="schema-type">Array</div>
+                        <div class="schema-desc">Configuração de botões rápidos para encaminhamentos.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 12 — BUGS CORRIGIDOS -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="bugs">
+                <div class="section-number">// 12</div>
+                <h2>Bugs Conhecidos e Corrigidos na v6.0</h2>
+
+                <div class="bug-card">
+                    <div class="bug-header">
+                        <div class="bug-status fixed">RESOLVIDO</div>
+                        <div class="bug-title">Botão X exigindo dois cliques para fechar o modal</div>
+                    </div>
+                    <div class="bug-body">
+                        <p><strong>Causa:</strong> Duplicidade de event listeners. Tanto <code>sidebar.js</code> quanto <code>content.js</code> ouviam cliques nos mesmos botões da barra para abrir/fechar os modais, gerando conflito de estado.</p>
+                        <p><strong>Solução:</strong> Remoção completa da função <code>conectarComToolbar</code> de todos os módulos. A barra é a única responsável por iniciar a abertura ou fechamento de modais.</p>
+                    </div>
+                </div>
+
+                <div class="bug-card">
+                    <div class="bug-header">
+                        <div class="bug-status fixed">RESOLVIDO</div>
+                        <div class="bug-title">Salto (pulado) de posição ao arrastar o modal</div>
+                    </div>
+                    <div class="bug-body">
+                        <p><strong>Causa:</strong> Uso de <code>offsetLeft</code> e <code>offsetTop</code> para calcular posições iniciais durante o arrasto, gerando pulos visuais por desconsiderar margens e transformações CSS.</p>
+                        <p><strong>Solução:</strong> Alterado para usar <code>getBoundingClientRect()</code> no início do clique para obter coordenadas exatas relativas à viewport.</p>
+                    </div>
+                </div>
+
+                <div class="bug-card">
+                    <div class="bug-header">
+                        <div class="bug-status fixed">RESOLVIDO</div>
+                        <div class="bug-title">Arrasto acionado ao clicar no botão X ou selecionar campos</div>
+                    </div>
+                    <div class="bug-body">
+                        <p><strong>Causa:</strong> Listener de arrasto no cabeçalho não verificava a origem do clique, iniciando o arrasto mesmo quando o usuário tentava fechar a janela.</p>
+                        <p><strong>Solução:</strong> Adicionado <code>e.stopPropagation()</code> e verificação no listener para ignorar cliques vindos do botão de fechar.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 13 — PADRÃO DE CÓDIGO -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="padrao">
+                <div class="section-number">// 13</div>
+                <h2>Padrão de Código para Novos Módulos</h2>
+
+                <p>Ao criar novos arquivos ou funcionalidades que precisem abrir uma janela na extensão, siga o padrão de encapsulamento:</p>
+
+                <div class="code-block">
+                    <div class="code-label">Template de Módulo</div>
+                    <pre>(<span class="c-kw">function</span>() {
+    <span class="c-kw">let</span> modalAtivo = <span class="c-kw">null</span>;
+
+    <span class="c-kw">async function</span> <span class="c-fn">abrirModalExemplo</span>() {
+        <span class="c-kw">if</span> (modalAtivo) {
+            modalAtivo.<span class="c-fn">fechar</span>();
+            modalAtivo = <span class="c-kw">null</span>;
+            <span class="c-kw">return</span>;
+        }
+
+        <span class="c-cm">// 1. Cria a instância</span>
+        <span class="c-kw">const</span> modal = <span class="c-kw">new</span> <span class="c-cl">TwoelveModalBase</span>(<span class="c-str">'💡 Novo Recurso'</span>);
+        modalAtivo = modal;
+        modal.<span class="c-fn">abrir</span>();
+
+        <span class="c-cm">// 2. Monta o conteúdo via DOM ou String</span>
+        <span class="c-kw">const</span> content = document.<span class="c-fn">createElement</span>(<span class="c-str">'div'</span>);
+        content.innerHTML = <span class="c-str">'&lt;p&gt;Conteúdo do recurso...&lt;/p&gt;'</span>;
+        modal.<span class="c-fn">setConteudoElemento</span>(content);
+
+        <span class="c-cm">// 3. Configura callback de limpeza</span>
+        modal.<span class="c-fn">setFecharCallback</span>(() => {
+            modalAtivo = <span class="c-kw">null</span>;
+        });
+    }
+
+    <span class="c-cm">// 4. Expõe a função para o sidebar.js</span>
+    window.abrirModalExemplo = abrirModalExemplo;
+})();</pre>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 14 — CHECKLIST -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="checklist">
+                <div class="section-number">// 14</div>
+                <h2>Checklist de Integração</h2>
+                <p>Verifique estes pontos ao adicionar novas páginas, recursos ou arquivos ao projeto:</p>
+
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <div class="check-box done"></div>
+                        <div>A ordem dos scripts no [manifest.json](manifest.json) está correta (classe base no topo, lógica principal abaixo)?</div>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="check-box done"></div>
+                        <div>O fechamento do modal limpa a variável <code>modalAtivo</code> local de cada módulo?</div>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="check-box done"></div>
+                        <div>A classe <code>TwoelveModalBase</code> foi instanciada sem duplicar handlers de abertura e fechamento?</div>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="check-box done"></div>
+                        <div>A Toolbar no [sidebar.js](sidebar.js) centraliza o toggle usando a função <code>gerenciarModal()</code>?</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- 15 — PRÓXIMOS PASSOS -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="section" id="proximos">
+                <div class="section-number">// 15</div>
+                <h2>Próximos Passos recomendados</h2>
+                <div class="two-col">
+                    <div class="box">
+                        <h4>Melhorias de Performance</h4>
+                        <ul>
+                            <li>Otimizar os seletores do DOM para evitar buscas repetidas no documento em ciclos de verificação rápidos.</li>
+                            <li>Adicionar proteção no preenchimento de formulários contra o recarregamento parcial da página.</li>
+                        </ul>
+                    </div>
+                    <div class="box">
+                        <h4>Novas Funcionalidades</h4>
+                        <ul>
+                            <li>Adicionar atalhos de teclado configuráveis no painel de configurações para ativação rápida de relatos.</li>
+                            <li>Integração de testes automatizados para simular cliques nos botões rápidos em ambiente sandbox.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div>TwoElve v6.0 — Documentação Técnica</div>
+            <div>Criado com <span>♥</span> por Google DeepMind team</div>
+        </footer>
+
+    </main>
+
+</div>
+
+</body>
+</html>
