@@ -26,7 +26,8 @@
     saudacaoMensagem: '',
     saudacaoPrevia: false,
     toolbarLayout: 'superior',
-    larguraAba: 76
+    larguraAba: 76,
+    larguraAbaAberta: 700
   };
 
   // saudação automática existe SOMENTE na branch dev (flag "twoelveSaudacao" no manifest)
@@ -385,6 +386,14 @@
     $('config-largura-aba').value = largura;
     $('largura-aba-valor').textContent = largura + 'px';
 
+    // largura da janela aberta (painel de 700px)
+    const larguraAberta = c.larguraAbaAberta ?? 700;
+    const sliderAberto = $('config-largura-aberta');
+    if (sliderAberto) {
+      sliderAberto.value = larguraAberta;
+      $('largura-aberta-valor').textContent = larguraAberta + 'px';
+    }
+
     atualizarSwatches();
   }
 
@@ -572,12 +581,22 @@
       });
     });
 
-    // largura da aba lateral
+    // largura da aba lateral (alça)
     $('config-largura-aba').addEventListener('input', (e) => {
       const valor = parseInt(e.target.value, 10) || 76;
       $('largura-aba-valor').textContent = valor + 'px';
       salvarConfiguracoes({ larguraAba: valor });
     });
+
+    // largura da aba aberta (painel)
+    const sliderAberto = $('config-largura-aberta');
+    if (sliderAberto) {
+      sliderAberto.addEventListener('input', (e) => {
+        const valor = parseInt(e.target.value, 10) || 700;
+        $('largura-aberta-valor').textContent = valor + 'px';
+        salvarConfiguracoes({ larguraAbaAberta: valor });
+      });
+    }
 
     // swatches de cor → abrem o diálogo centralizado
     document.querySelectorAll('.swatch-cor').forEach((sw) => {

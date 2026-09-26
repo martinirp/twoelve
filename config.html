@@ -194,12 +194,19 @@
 
             <hr class="my-3" />
 
-            <label class="form-label" for="config-largura-aba">Largura da aba lateral</label>
+            <label class="form-label" for="config-largura-aba">Largura da alça</label>
             <div class="d-flex align-items-center gap-2">
               <input type="range" id="config-largura-aba" class="form-range flex-grow-1" min="40" max="240" step="2" />
               <span class="valor-largura-aba" id="largura-aba-valor">76px</span>
             </div>
-            <div class="texto-fraco mt-1">A metade fica visível na borda da tela.</div>
+            <div class="texto-fraco mt-1">Tamanho do botãozinho pendurado na borda (metade fica visível).</div>
+
+            <label class="form-label mt-3" for="config-largura-aberta">Largura da aba aberta</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="range" id="config-largura-aberta" class="form-range flex-grow-1" min="500" max="1200" step="20" />
+              <span class="valor-largura-aba" id="largura-aberta-valor">700px</span>
+            </div>
+            <div class="texto-fraco mt-1">Tamanho da janela que abre ao clicar na alça.</div>
           </div>
         </div>
       </div>

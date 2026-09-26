@@ -209,7 +209,7 @@
             display: flex;
         }
         body.twoelve-lateral.twoelve-painel-aberto .twoelve-abas {
-            right: calc(700px + 12px); /* borda esquerda da janela + folga */
+            right: calc(var(--twoelve-aba-aberta-largura, 700px) + 12px); /* borda esquerda da janela + folga */
         }
         body.twoelve-lateral .twoelve-pin {
             display: none;
@@ -346,12 +346,19 @@
             const result = await chrome.storage.local.get(['twoelveConfig']);
             const config = (result && result.twoelveConfig) || {};
             aplicarLayoutToolbar(config.toolbarLayout);
-            // largura da aba lateral (metade fica visível na borda)
+            // largura da alça (botãozinho da lateral — metade fica visível na borda)
             const largura = parseInt(config.larguraAba, 10);
             if (largura && largura >= 40 && largura <= 240) {
                 document.documentElement.style.setProperty('--twoelve-aba-largura', largura + 'px');
             } else {
                 document.documentElement.style.removeProperty('--twoelve-aba-largura');
+            }
+            // largura da aba aberta (janela que abre ao clicar na alça)
+            const larguraAberta = parseInt(config.larguraAbaAberta, 10);
+            if (larguraAberta && larguraAberta >= 500 && larguraAberta <= 1200) {
+                document.documentElement.style.setProperty('--twoelve-aba-aberta-largura', larguraAberta + 'px');
+            } else {
+                document.documentElement.style.removeProperty('--twoelve-aba-aberta-largura');
             }
         } catch (e) {}
     }
