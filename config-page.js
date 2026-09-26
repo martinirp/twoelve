@@ -171,10 +171,10 @@
 
   async function aoAtualizar() {
     const { instalar } = getSelecao();
-    setUpdateStatus('Validando a branch no GitHub…');
-
-    const btn = $('btn-gerar-instalador');
+    const btn = $('btn-instalar');
     btn.disabled = true;
+
+    setUpdateStatus('Validando a branch no GitHub…');
 
     const u = await branchExiste(instalar);
     if (u === null) {
@@ -188,79 +188,171 @@
       return;
     }
 
-    // gera e baixa o instalador
-    const bat = gerarInstalador(instalar);
-    baixarBlob(new Blob([bat], { type: 'text/plain;charset=utf-8' }), 'instalar-twoelve.cmd');
+    // 1) baixa o ZIP no navegador
+    setUpdateStatus('⬇️ Baixando o ZIP da branch “' + instalar + '” do GitHub…');
+    let zip = null;
+    try {
+      const resp = await fetch('https://codeload.github.com/' + REPO + '/zip/refs/heads/' + encodeURIComponent(instalar));
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      zip = new Uint8Array(await resp.arrayBuffer());
+    } catch (e) {
+      setUpdateStatus('Falha ao baixar o ZIP do GitHub (sem conexão?).', 'erro');
+      btn.disabled = false;
+      return;
+    }
 
-    setUpdateStatus('✅ Instalador gerado! Dê dois cliques no instalar-twoelve.cmd — ele baixa o ZIP direto na pasta da extensão e instala, depois abre o chrome://extensions.', 'ok');
+    // 2) usuário escolhe a pasta onde a extensão está instalada
+    if (typeof window.showDirectoryPicker !== 'function') {
+      setUpdateStatus('Este navegador é antigo e não suporta escolher pasta (File System Access API). Atualize o Chrome (86+) e tente de novo.', 'erro');
+      btn.disabled = false;
+      return;
+    }
+
+    let dirHandle = null;
+    try {
+      dirHandle = await window.showDirectoryPicker({
+        id: 'twoelve-instalar',
+        mode: 'read-write',
+        startIn: 'desktop'
+      });
+    } catch (e) {
+      btn.disabled = false;
+      if (e && e.name === 'AbortError') {
+        setUpdateStatus('Instalação cancelada — nenhuma pasta foi selecionada.', 'aviso');
+      } else {
+        setUpdateStatus('Não consegui abrir a escolha de pasta: ' + (e.message || e), 'erro');
+      }
+      return;
+    }
+
+    // confere se é mesmo a pasta da extensão (tem o manifest.json)
+    let manifestHandle = null;
+    try { manifestHandle = await dirHandle.getFileHandle('manifest.json'); } catch (e) {}
+    if (!manifestHandle) {
+      setUpdateStatus('A pasta escolhida não é da extensão (faltou o manifest.json). Nada foi alterado.', 'erro');
+      btn.disabled = false;
+      return;
+    }
+
+    // 3) extrai o ZIP dentro da pasta escolhida
+    setUpdateStatus('📂 Extraindo os arquivos na pasta da extensão…');
+    const arquivos = lerZip(zip, instalar);
+    if (!arquivos) {
+      setUpdateStatus('Não consegui ler o ZIP baixado.', 'erro');
+      btn.disabled = false;
+      return;
+    }
+    if (arquivos.length === 0) {
+      setUpdateStatus('O ZIP não tinha arquivos para instalar. Confira a branch no GitHub.', 'erro');
+      btn.disabled = false;
+      return;
+    }
+
+    let okGrava = 0;
+    try {
+      for (let i = 0; i < arquivos.length; i++) {
+        const a = arquivos[i];
+        const bytes = a.metodo === 8 ? await inflarRaw(a.dados) : a.dados;
+        await gravarArquivoZip(dirHandle, a.rel, bytes);
+        okGrava++;
+        setUpdateStatus('📂 Extraindo na pasta da extensão… (' + okGrava + '/' + arquivos.length + ') ' + a.rel);
+      }
+    } catch (e) {
+      setUpdateStatus('Erro ao gravar os arquivos na pasta: ' + (e.message || e), 'erro');
+      btn.disabled = false;
+      return;
+    }
+
+    // 4) confirma a versão que ficou gravada no manifest.json
+    let versaoNova = '?';
+    try {
+      const m = await (await manifestHandle.getFile()).json();
+      versaoNova = m.version || '?';
+    } catch (e) {}
+
+    setUpdateStatus('✅ Instalado! v' + versaoNova + ' gravada na pasta da extensão (' + okGrava + ' arquivo(s)). Agora recarregue a extensão em chrome://extensions.', 'ok');
     btn.disabled = false;
+
+    try { chrome.tabs.create({ url: 'chrome://extensions' }); } catch (e) {}
   }
 
-  // ---------- gerador do instalador (.cmd) ----------
-  // Baixa o ZIP DIRETO NA PASTA da extensão (onde está o manifest.json),
-  // extrai ali mesmo e substitui os arquivos — sem depender de %TEMP%.
-  function gerarInstalador(use) {
-    const TARGET = 'C:\\Users\\Lucas\\Desktop\\Extensao';
-    const ps = (cmd) => 'powershell -NoProfile -ExecutionPolicy Bypass -Command "' + cmd + '"';
-    return [
-      '@echo off',
-      'setlocal EnableExtensions',
-      'title TwoElve - Atualizacao automatica',
-      '',
-      'set "REPO=' + REPO + '"',
-      'set "BRANCH=' + use + '"',
-      '',
-      ':destino',
-      'set "TARGET=' + TARGET + '"',
-      'if exist "%TARGET%\\manifest.json" goto ok',
-      'echo.',
-      'echo Informe a pasta da extensao (onde esta o manifest.json):',
-      'set /p "TARGET=> "',
-      'if not exist "%TARGET%\\manifest.json" (',
-      '  echo Nao encontrei manifest.json em "%TARGET%"',
-      '  goto destino',
-      ')',
-      '',
-      ':ok',
-      'echo.',
-      'echo ===========================================',
-      'echo  TwoElve - Atualizacao automatica',
-      'echo  Repositorio : %REPO%  (branch %BRANCH%)',
-      'echo  Pasta       : %TARGET%',
-      'echo ===========================================',
-      'echo.',
-      '',
-      'echo [1/3] Baixando o ZIP da extensao direto na pasta...',
-      ps("Invoke-WebRequest -Uri 'https://codeload.github.com/%REPO%/zip/refs/heads/%BRANCH%' -OutFile '%TARGET%\\twoelve-atual.zip'"),
-      'if errorlevel 1 goto falha',
-      '',
-      'echo [2/3] Extraindo na pasta da extensao...',
-      ps("if(Test-Path '%TARGET%\\twoelve_extraido'){Remove-Item -Recurse -Force '%TARGET%\\twoelve_extraido'}; Expand-Archive -Path '%TARGET%\\twoelve-atual.zip' -DestinationPath '%TARGET%\\twoelve_extraido' -Force"),
-      'if errorlevel 1 goto falha',
-      '',
-      'echo [3/3] Substituindo os arquivos...',
-      'for /d %%D in ("%TARGET%\\twoelve_extraido\\*") do xcopy "%%D\\*" "%TARGET%\\" /e /y /q >nul',
-      'if errorlevel 1 goto falha',
-      '',
-      'echo.',
-      'echo  Limpando temporarios...',
-      'if exist "%TARGET%\\twoelve-atual.zip" del /q "%TARGET%\\twoelve-atual.zip"',
-      'if exist "%TARGET%\\twoelve_extraido" rmdir /s /q "%TARGET%\\twoelve_extraido"',
-      '',
-      'echo.',
-      'echo  Concluido! Agora recarregue a extensao:',
-      'echo    chrome://extensions',
-      'start chrome chrome://extensions 2>nul',
-      'timeout /t 8 >nul',
-      'exit /b 0',
-      '',
-      ':falha',
-      'echo.',
-      'echo  Erro durante a atualizacao. Confira o repositorio e a branch.',
-      'pause',
-      'exit /b 1',
-      ''
-    ].join('\r\n');
+  // ---------- leitor de ZIP (puro JS, sem bibliotecas) ----------
+  // Lê o ZIP que o GitHub gera no codeload (pasta raiz "<repositorio>-<branch>/")
+  // e devolve a lista de arquivos: { rel, metodo, dados } prontos para gravar.
+  function lerZip(uf8, branch) {
+    const view = new DataView(uf8.buffer, uf8.byteOffset, uf8.byteLength);
+    const u8 = (o, tam) => uf8.subarray(o, o + tam);
+    const u16 = (o) => view.getUint16(o, true);
+    const u32 = (o) => view.getUint32(o, true);
+
+    // 1) acha o fim do ZIP: End of Central Directory (PK\x05\x06), de trás pra frente
+    const EOCD = 0x06054b50;
+    let fim = -1;
+    const inicio = Math.max(0, uf8.length - 65557);
+    for (let i = uf8.length - 22; i >= inicio; i--) {
+      if (u32(i) === EOCD) { fim = i; break; }
+    }
+    if (fim < 0) return null;
+
+    const qtd   = u16(fim + 10);
+    const tamCD = u32(fim + 12);
+    const offCD = u32(fim + 16);
+    if (qtd === 0 || offCD + tamCD > uf8.length) return null;
+
+    const raiz = REPO.split('/')[1] + '-' + branch + '/';
+    const arquivos = [];
+    let off = offCD;
+
+    // 2) percorre o diretório central (PK\x01\x02)
+    for (let n = 0; n < qtd; n++) {
+      if (u32(off) !== 0x02014b50) break;
+      const metodo    = u16(off + 10);
+      const tamComp   = u32(off + 20);
+      const nomeLen   = u16(off + 28);
+      const extraLen  = u16(off + 30);
+      const comentLen = u16(off + 32);
+      const offLocal  = u32(off + 42);
+
+      let nome = '';
+      try { nome = new TextDecoder('utf-8').decode(u8(off + 46, nomeLen)); } catch (e) {}
+
+      const prox = off + 46 + nomeLen + extraLen + comentLen;
+      if (!nome.endsWith('/') && (metodo === 0 || metodo === 8)) {
+        let rel = nome;
+        if (rel.startsWith(raiz)) rel = rel.slice(raiz.length);
+        if (rel && !rel.split('/').includes('..') && u32(offLocal) === 0x04034b50) {
+          const nomeLocLen  = u16(offLocal + 26);
+          const extraLocLen = u16(offLocal + 28);
+          const dadosIni = offLocal + 30 + nomeLocLen + extraLocLen;
+          if (dadosIni + tamComp <= uf8.length) {
+            arquivos.push({ rel, metodo, dados: u8(dadosIni, tamComp) });
+          }
+        }
+      }
+      off = prox;
+    }
+
+    return arquivos;
+  }
+
+  // infla um bloco "deflate-raw" (método 8 do ZIP) com o DecompressionStream nativo
+  async function inflarRaw(bytes) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+
+  // grava um arquivo em subpastas, criando as pastas que faltarem
+  async function gravarArquivoZip(dirHandle, rel, bytes) {
+    const partes = rel.split('/');
+    const nomeArquivo = partes.pop();
+    let pasta = dirHandle;
+    for (const p of partes) {
+      pasta = await pasta.getDirectoryHandle(p, { create: true });
+    }
+    const arq = await pasta.getFileHandle(nomeArquivo, { create: true });
+    const writable = await arq.createWritable();
+    await writable.write(bytes);
+    await writable.close();
   }
 
   // ==============================================
@@ -606,7 +698,7 @@
 
     $('config-branch').addEventListener('change', () => salvarSelecao($('config-branch').value));
     $('btn-verificar').addEventListener('click', verificarVersao);
-    $('btn-gerar-instalador').addEventListener('click', aoAtualizar);
+    $('btn-instalar').addEventListener('click', aoAtualizar);
   }
 
   if (document.readyState === 'loading') {
