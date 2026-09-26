@@ -212,7 +212,7 @@
     try {
       dirHandle = await window.showDirectoryPicker({
         id: 'twoelve-instalar',
-        mode: 'read-write',
+        mode: 'readwrite',
         startIn: 'desktop'
       });
     } catch (e) {
