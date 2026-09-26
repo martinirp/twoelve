@@ -259,6 +259,39 @@
                 from { transform: scale(1); opacity: 0.7; }
                 to   { transform: scale(1); opacity: 1; }
             }
+
+            /* ===== MODO LATERAL: modais viram painéis fixos encostados na lateral ===== */
+            body.twoelve-lateral .twoelve-modal-container {
+                top: 0;
+                right: 172px;
+                bottom: 0;
+                left: auto;
+                transform: none;
+                width: 340px;
+                min-width: 280px;
+                max-width: calc(100vw - 180px);
+                min-height: 100vh;
+                max-height: 100vh;
+                height: auto;
+                border: 0;
+                border-left: 2px solid var(--modal-custom-border, #000000);
+                box-shadow: -6px 6px 0px var(--modal-custom-border, #000000);
+                animation: twoelve-panel-in 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            body.twoelve-lateral .twoelve-modal-body {
+                min-height: 0;
+                max-height: none;
+            }
+            body.twoelve-lateral .twoelve-modal-resize-handle {
+                display: none;
+            }
+            body.twoelve-lateral .twoelve-modal-minimize {
+                display: none;
+            }
+            @keyframes twoelve-panel-in {
+                from { transform: translateX(100%); }
+                to   { transform: none; }
+            }
         `;
         document.head.appendChild(style);
     }
@@ -295,9 +328,12 @@
                 return this;
             }
 
-            // Esconde a toolbar
-            const toolbar = document.querySelector('.twoelve-sidebar');
-            if (toolbar) toolbar.style.display = 'none';
+            // Esconde a toolbar (no modo lateral as abas ficam visíveis)
+            const lateral = document.body.classList.contains('twoelve-lateral');
+            if (!lateral) {
+                const toolbar = document.querySelector('.twoelve-sidebar');
+                if (toolbar) toolbar.style.display = 'none';
+            }
 
             this.container = document.createElement('div');
             this.container.className = 'twoelve-modal-container';
@@ -355,22 +391,24 @@
             this.container.appendChild(body);
             document.body.appendChild(this.container);
 
-            // Resize handle (lado direito)
+            // Resize handle (lado direito) — desativado no modo lateral
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'twoelve-modal-resize-handle';
             this.container.appendChild(resizeHandle);
-            this._makeResizable(resizeHandle);
+            if (!lateral) this._makeResizable(resizeHandle);
 
             // Restaurar largura salva (chrome.storage.local — persiste entre sessões)
             this._storageKey = 'twoelve-modal-width-' + (this.titulo || 'default').replace(/\s+/g, '_');
-            chrome.storage.local.get([this._storageKey]).then((res) => {
-                const savedWidth = res && res[this._storageKey];
-                if (savedWidth && this.container) {
-                    this.container.style.width = savedWidth + 'px';
-                }
-            }).catch(() => {});
+            if (!lateral) {
+                chrome.storage.local.get([this._storageKey]).then((res) => {
+                    const savedWidth = res && res[this._storageKey];
+                    if (savedWidth && this.container) {
+                        this.container.style.width = savedWidth + 'px';
+                    }
+                }).catch(() => {});
+            }
 
-            this._makeDraggable(this.titleElement);
+            if (!lateral) this._makeDraggable(this.titleElement);
             
             window._ultimoModalAberto = this;
             
