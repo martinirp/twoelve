@@ -269,13 +269,13 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
             return true;
         }
 
-        // mensagem personalizada (config) ou saudação por horário
-        const personalizada = (controles.saudacaoMensagem || '').trim();
+        // saudação por horário SEMPRE, com a mensagem personalizada junto (se houver)
         const horas = new Date().getHours();
-        const mensagem = personalizada ||
-            (horas < 12 ? "Bom dia, como posso ajudar?" :
-             horas < 18 ? "Boa tarde, como posso ajudar?" :
-             "Boa noite, como posso ajudar?");
+        const saudacaoHorario = horas < 12 ? "Bom dia" : horas < 18 ? "Boa tarde" : "Boa noite";
+        const personalizada = (controles.saudacaoMensagem || '').trim();
+        const mensagem = personalizada
+            ? saudacaoHorario + ", " + personalizada
+            : saudacaoHorario + ", como posso ajudar?";
 
         const escrito = await escreverNoChat(textarea, mensagem);
         if (!escrito) return false;
