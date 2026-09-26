@@ -19,7 +19,9 @@
       botaoBorda: '#000000'
     },
     opacidade: 1,
-    usarEmotes: true
+    usarEmotes: true,
+    autoMensagem: true,
+    autoOverlay: true
   };
 
   const PRESET_THEMES = {
@@ -296,6 +298,8 @@
     $('config-opacidade').value = c.opacidade ?? 1;
     $('opacidade-valor').textContent = Math.round((c.opacidade ?? 1) * 100) + '%';
     $('config-emotes').checked = c.usarEmotes !== false;
+    $('config-saudacao').checked = c.autoMensagem !== false;
+    $('config-overlay').checked = c.autoOverlay !== false;
 
     atualizarSwatches();
   }
@@ -367,6 +371,13 @@
       configAtual = { ...DEFAULTS, ...(res.twoelveConfig || {}) };
       configAtual.cores = { ...DEFAULTS.cores, ...(configAtual.cores || {}) };
       configAtual.fonte = { ...DEFAULTS.fonte, ...(configAtual.fonte || {}) };
+
+      // toggles de automação ficam em chaves próprias (autoMensagem/autoOverlay)
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const resAut = await chrome.storage.local.get(['autoMensagem', 'autoOverlay']);
+        configAtual.autoMensagem = resAut.autoMensagem !== false;
+        configAtual.autoOverlay = resAut.autoOverlay !== false;
+      }
     } catch (e) {
       console.error('Erro ao carregar configurações:', e);
     }
@@ -385,6 +396,22 @@
       }
     } catch (e) {
       console.error('Erro ao salvar:', e);
+    }
+  }
+
+  // toggles de automação → chaves próprias no storage (autoMensagem/autoOverlay)
+  async function salvarToggleAutomatizacao(patch) {
+    configAtual = { ...configAtual, ...patch };
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set(patch);
+        // avisa as abas do ERP para atualizarem os controles na hora
+        if (chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage({ action: 'twoelve-config-changed' }, () => {});
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao salvar automação:', e);
     }
   }
 
@@ -412,6 +439,14 @@
 
     $('config-emotes').addEventListener('change', (e) => {
       salvarConfiguracoes({ usarEmotes: e.target.checked });
+    });
+
+    $('config-saudacao').addEventListener('change', (e) => {
+      salvarToggleAutomatizacao({ autoMensagem: e.target.checked });
+    });
+
+    $('config-overlay').addEventListener('change', (e) => {
+      salvarToggleAutomatizacao({ autoOverlay: e.target.checked });
     });
 
     // swatches de cor → abrem o diálogo centralizado

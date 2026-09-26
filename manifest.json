@@ -1,13 +1,20 @@
 {
   "manifest_version": 3,
   "name": "TwoElve v6.0",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "description": "Automação para plataforma Elleven",
-  "permissions": ["storage", "tabs"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://erp.elo.net.br/*"],
+      "matches": [
+        "https://erp.elo.net.br/*"
+      ],
       "js": [
         "modalbase.js",
         "button.js",
@@ -22,13 +29,21 @@
       "run_at": "document_end"
     },
     {
-      "matches": ["<all_urls>"],
-      "js": ["utils.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "utils.js"
+      ],
       "run_at": "document_end"
     },
     {
-      "matches": ["https://elonet.native-infinity.com.br/*"],
-      "js": ["call.js"],
+      "matches": [
+        "https://elonet.native-infinity.com.br/*"
+      ],
+      "js": [
+        "call.js"
+      ],
       "run_at": "document_end"
     }
   ],

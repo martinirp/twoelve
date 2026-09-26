@@ -1112,6 +1112,17 @@
         window.TwoElveControle.autoMensagem = result.autoMensagem !== false;
         console.log('[TwoElve] Controles carregados:', window.TwoElveControle);
     });
+
+    // Atualiza os controles quando a página de Configurações muda as automações
+    chrome.runtime.onMessage.addListener((msg) => {
+        if (msg && msg.action === 'twoelve-config-changed') {
+            chrome.storage.local.get(['autoOverlay', 'autoMensagem'], (result) => {
+                window.TwoElveControle.autoOverlay = result.autoOverlay !== false;
+                window.TwoElveControle.autoMensagem = result.autoMensagem !== false;
+                console.log('[TwoElve] Controles atualizados pela Configuração:', window.TwoElveControle);
+            });
+        }
+    });
     
     // ==============================================
     // 7. MODAL PRINCIPAL UTILS
@@ -1152,92 +1163,8 @@
             container.appendChild(btn);
         });
         
-        // Separador
-        const separador = document.createElement('div');
-        separador.style.cssText = 'height: 2px; background: #000000; margin: 8px 0;';
-        container.appendChild(separador);
-        
-        // Título das automações
-        const autoLabel = document.createElement('div');
-        autoLabel.textContent = '⚙️ Automações';
-        autoLabel.style.cssText = `
-            font-weight: 700;
-            font-size: 12px;
-            margin-bottom: 8px;
-            color: #10b981;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        `;
-        container.appendChild(autoLabel);
-        
-        // Função para criar toggle
-        function criarToggle(chave, labelAtivo, labelInativo) {
-            const row = document.createElement('div');
-            row.style.cssText = `
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 10px 12px;
-                border: 2px solid #000000;
-                background: var(--modal-custom-bg, #ffffff);
-                cursor: pointer;
-            `;
-            
-            const labelEl = document.createElement('span');
-            labelEl.style.cssText = 'font-size: 13px; font-weight: 500;';
-            
-            const pill = document.createElement('div');
-            pill.style.cssText = `
-                width: 40px;
-                height: 20px;
-                border-radius: 10px;
-                position: relative;
-                transition: background 0.2s ease;
-                background: #d1d5db;
-            `;
-            const circle = document.createElement('div');
-            circle.style.cssText = `
-                width: 16px;
-                height: 16px;
-                border-radius: 50%;
-                background: white;
-                position: absolute;
-                top: 2px;
-                left: 2px;
-                transition: left 0.2s ease;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            `;
-            pill.appendChild(circle);
-            row.appendChild(labelEl);
-            row.appendChild(pill);
-            
-            let estadoAtual = window.TwoElveControle[chave];
-            
-            function aplicarEstado(ativo) {
-                pill.style.background = ativo ? '#10b981' : '#d1d5db';
-                circle.style.left = ativo ? '22px' : '2px';
-                labelEl.innerHTML = `${ativo ? '🟢' : '🔴'} ${ativo ? labelAtivo : labelInativo}`;
-            }
-            
-            aplicarEstado(estadoAtual);
-            
-            row.addEventListener('click', () => {
-                estadoAtual = !estadoAtual;
-                aplicarEstado(estadoAtual);
-                window.TwoElveControle[chave] = estadoAtual;
-                chrome.storage.local.set({ [chave]: estadoAtual });
-                console.log(`[TwoElve] ${chave} → ${estadoAtual ? 'ATIVO' : 'INATIVO'}`);
-            });
-            
-            return row;
-        }
-        
-        const toggleOverlay = criarToggle('autoOverlay', 'Overlay de Nome Ativo', 'Overlay de Nome Inativo');
-        const toggleMensagem = criarToggle('autoMensagem', 'Saudação Automática Ativa', 'Saudação Automática Inativa');
-        
-        container.appendChild(toggleOverlay);
-        container.appendChild(toggleMensagem);
-        
+        // Toggles de automação removidos — agora ficam na página de Configurações.
+
         modal.setConteudoElemento(container);
         modal.setFecharCallback(() => {
             modalAtivo = null;

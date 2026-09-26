@@ -10,6 +10,7 @@
     let jaProcessouNovaAba = false;
     let observadorAtivo = true;
     const filaDeAbas = []; // [bug#5] fila para múltiplas abas simultâneas
+    let contadorAba = 0;   // numeração das abas de atendimento (badge + atributo)
 
     // ─── AGUARDAR ELEMENTO NO DOM ────────────────────────────────────────────────
     function aguardarElemento(selector, timeout = 5000) {
@@ -28,15 +29,97 @@
         });
     }
 
+    // ─── AGUARDAR UM DE VÁRIOS CAMPOS ─────────────────────────────────────────────
+    const SELETORES_TEXTAREA = [
+        'textarea[rows="1"].MuiInputBase-inputMultiline',   // MUI (padrão do ERP)
+        'textarea.MuiInputBase-inputMultiline',             // MUI (variações)
+        'textarea[role="textbox"]',                         // ARIA
+        '.dx-texteditor textarea',                          // DevExtreme
+        'textarea:not([readonly]):not([disabled])'          // último recurso
+    ];
+    function aguardarUmDos(selectores, timeout) {
+        return new Promise((resolve) => {
+            const limite = timeout || 6000;
+            const inicio = Date.now();
+            const checar = () => {
+                for (const sel of selectores) {
+                    const el = document.querySelector(sel);
+                    if (el) {
+                        console.log(`[TwoElve] ✅ Campo encontrado via "${sel}"`);
+                        return resolve(el);
+                    }
+                }
+                if (Date.now() - inicio >= limite) {
+                    console.warn(`[TwoElve] ⏱️ Timeout aguardando campo (${selectores.join(', ')})`);
+                    return resolve(null);
+                }
+                setTimeout(checar, 150);
+            };
+            checar();
+        });
+    }
+
+    // ─── ENCONTRAR BOTÃO ENVIAR ───────────────────────────────────────────────────
+    const encontrarBotaoEnviar = () => {
+        const candidatos = [
+            'button[type="submit"][tooltip="Enviar mensagem"]',
+            'button[type="submit"]',
+            'button[aria-label*="enviar" i], button[title*="enviar" i], button[tooltip*="enviar" i]',
+            'button[aria-label*="send" i], button[title*="send" i], button[tooltip*="send" i]'
+        ];
+        for (const sel of candidatos) {
+            const el = document.querySelector(sel);
+            if (el) return { botao: el, origem: sel };
+        }
+        // varredura final: qualquer botão cujo texto/atributos contenham "enviar"/"send"
+        const alvo = Array.from(document.querySelectorAll('button')).find((b) => {
+            const texto = ((b.textContent || '') + ' ' +
+                (b.getAttribute('aria-label') || '') + ' ' +
+                (b.getAttribute('title') || '') + ' ' +
+                (b.getAttribute('tooltip') || '')).toLowerCase();
+            return (texto.includes('enviar') || texto.includes('send')) && texto.length < 60;
+        });
+        return alvo ? { botao: alvo, origem: 'texto contém enviar/send' } : null;
+    };
+
+    // ─── CLICAR BOTÃO ENVIAR (com retry se desabilitado) ──────────────────────────
+    const clicarBotaoEnviar = (botao, maxRetries) => new Promise((resolve) => {
+        let tentativas = 0;
+        const limite = maxRetries || 20; // ~4s
+        const tentar = () => {
+            if (!document.body.contains(botao)) {
+                console.warn('[TwoElve] ⚠️ Botão enviar saiu do DOM.');
+                return resolve(false);
+            }
+            if (botao.disabled) {
+                tentativas += 1;
+                if (tentativas > limite) {
+                    console.warn('[TwoElve] ⚠️ Botão enviar segue desabilitado (retries esgotados).');
+                    return resolve(false);
+                }
+                setTimeout(tentar, 200);
+                return;
+            }
+            botao.click();
+            resolve(true);
+        };
+        tentar();
+    });
+
     // ─── ESCREVER NO CHAT ─────────────────────────────────────────────────────────
     async function escreverNoChat(elemento, valor) {
         if (!elemento) return false;
         try {
-            const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+            const proto = (elemento instanceof HTMLTextAreaElement)
+                ? window.HTMLTextAreaElement.prototype
+                : window.HTMLInputElement.prototype;
+            const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
             setter.call(elemento, valor);
             elemento.dispatchEvent(new Event('input', { bubbles: true }));
             elemento.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log("[TwoElve] ✅ Mensagem preenchida:", valor);
+            elemento.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+            const aplicado = (elemento.value || '') === valor;
+            console.log("[TwoElve]", aplicado ? "✅ Mensagem preenchida:" : "⚠️ Mensagem PODE NÃO ter sido aplicada pelo React:", valor);
             return true;
         } catch (error) {
             console.error("[TwoElve] Erro ao escrever:", error);
@@ -44,36 +127,51 @@
         }
     }
 
-    // ─── ENVIAR MENSAGEM SE HORÁRIO COMERCIAL (09:00–20:40) ──────────────────────
+    // ─── ENVIAR MENSAGEM SE HORÁRIO COMERCIAL (09:00–20:30) ──────────────────────
  
-const enviarMensagemSeHorarioComercial = () => {
-    return new Promise((resolve) => {
-        const agora = new Date();
-        const horas = agora.getHours();
-        const minutos = agora.getMinutes();
-        const totalMinutosAgora = horas * 60 + minutos;
-        const inicioComercial   = 9  * 60 + 0;   // 09:00 → 540 min
-        const fimComercial      = 20 * 60 + 30;  // 20:30 → 1230 min
-        const dentroDoHorario = totalMinutosAgora >= inicioComercial && totalMinutosAgora <= fimComercial;
-        if (!dentroDoHorario) {
-            console.log(`[TwoElve] 🌙 Fora do horário comercial (${horas}:${String(minutos).padStart(2,'0')}) — mensagem escrita mas NÃO enviada.`);
-            return resolve(false);
-        }
-        const delayMs = Math.floor(Math.random() * (8000 - 5000 + 1)) + 5000; // 5-8s
-        console.log(`[TwoElve] 🕐 Horário comercial (${horas}:${String(minutos).padStart(2,'0')}) — aguardando ${(delayMs/1000).toFixed(1)}s para enviar...`);
-        setTimeout(() => {
-            const botaoEnviar = document.querySelector('button[type="submit"][tooltip="Enviar mensagem"]');
-            if (botaoEnviar) {
-                botaoEnviar.click();
-                console.log("[TwoElve] 📤 Mensagem enviada automaticamente!");
-                resolve(true);
-            } else {
-                console.warn("[TwoElve] ⚠️ Botão de enviar não encontrado — mensagem apenas escrita.");
-                resolve(false);
+const enviarMensagemSeHorarioComercial = (textarea) => {
+        return new Promise((resolve) => {
+            const agora = new Date();
+            const horas = agora.getHours();
+            const minutos = agora.getMinutes();
+            const totalMinutosAgora = horas * 60 + minutos;
+            const inicioComercial   = 9  * 60 + 0;   // 09:00 → 540 min
+            const fimComercial      = 20 * 60 + 30;  // 20:30 → 1230 min
+
+            if (!textarea || !(textarea.value || '').trim()) {
+                console.warn('[TwoElve] ⚠️ Campo de mensagem vazio — nada a enviar.');
+                return resolve(false);
             }
-        }, delayMs);
-    });
-};
+
+            const dentroDoHorario = totalMinutosAgora >= inicioComercial && totalMinutosAgora <= fimComercial;
+            if (!dentroDoHorario) {
+                console.log(`[TwoElve] 🌙 Fora do horário comercial (${horas}:${String(minutos).padStart(2,'0')}, válido 09:00–20:30) — mensagem escrita mas NÃO enviada.`);
+                return resolve(false);
+            }
+
+            const delayMs = Math.floor(Math.random() * (8000 - 5000 + 1)) + 5000; // 5-8s
+            console.log(`[TwoElve] 🕐 Horário comercial (${horas}:${String(minutos).padStart(2,'0')}) — aguardando ${(delayMs/1000).toFixed(1)}s para enviar...`);
+            setTimeout(async () => {
+                const alvo = encontrarBotaoEnviar();
+                if (alvo) {
+                    console.log(`[TwoElve] 🎯 Botão enviar encontrado — ${alvo.origem}`);
+                    const clicado = await clicarBotaoEnviar(alvo.botao);
+                    if (clicado) {
+                        console.log("[TwoElve] 📤 Mensagem enviada automaticamente!");
+                    } else {
+                        console.warn("[TwoElve] ⚠️ Não consegui clicar no botão de enviar (desabilitado ou saiu do DOM).");
+                    }
+                    resolve(clicado);
+                } else {
+                    console.warn("[TwoElve] ⚠️ Botão de enviar não encontrado — tentando Enter como último recurso.");
+                    textarea.dispatchEvent(new KeyboardEvent('keydown', {
+                        key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true
+                    }));
+                    resolve(false);
+                }
+            }, delayMs);
+        });
+    };
 
     // ─── CLICAR NO BOTÃO LISTAGEM ────────────────────────────────────────────────
     const clicarBotaoListagem = () => {
@@ -146,53 +244,105 @@ const enviarMensagemSeHorarioComercial = () => {
 
     // ─── PREENCHER MENSAGEM ───────────────────────────────────────────────────────
     const preencherMensagem = async () => {
-        const textarea = await aguardarElemento('textarea[rows="1"].MuiInputBase-inputMultiline');
+        const textarea = await aguardarUmDos(SELETORES_TEXTAREA, 7000);
 
         if (!textarea) {
-            console.log("[TwoElve] ❌ Textarea não encontrado após espera");
+            console.log("[TwoElve] ❌ Campo de mensagem não encontrado após espera");
             return false;
         }
 
-        const horas = new Date().getHours();
-        let mensagem = "";
-
-        if (horas < 12) {
-            mensagem = "Bom dia, como posso ajudar?";
-        } else if (horas >= 12 && horas < 18) {
-            mensagem = "Boa tarde, como posso ajudar?";
-        } else {
-            mensagem = "Boa noite, como posso ajudar?";
+        // não sobrescreve o que o atendente já digitou
+        if ((textarea.value || '').trim()) {
+            console.log("[TwoElve] ℹ️ Campo já possui texto — saudação não sobrescreve:", textarea.value);
+            return true;
         }
+
+        const horas = new Date().getHours();
+        const mensagem = horas < 12
+            ? "Bom dia, como posso ajudar?"
+            : horas < 18
+                ? "Boa tarde, como posso ajudar?"
+                : "Boa noite, como posso ajudar?";
 
         const escrito = await escreverNoChat(textarea, mensagem);
 
         if (escrito) {
-            await enviarMensagemSeHorarioComercial();
+            await enviarMensagemSeHorarioComercial(textarea);
         }
 
         return escrito;
     };
 
     // ─── ID ÚNICO DA ABA ──────────────────────────────────────────────────────────
+    // Identifica a aba por protocolo/cliente usando múltiplos seletores: as classes
+    // JSS do site (jss30..jss33) mudam entre versões, o que fazia o ID virar vazio
+    // ("|") para todas as abas — fazendo toda aba nova parecer já vista e ser ignorada.
     const getAbaId = (aba) => {
         try {
-            const protocolo = aba.querySelector('.MuiTypography-root.jss33');
-            const cliente   = aba.querySelector('.jss32');
+            const protocolo = aba.querySelector(
+                '.MuiTypography-root.jss33, .MuiTypography-root.jss31'
+            );
+            const cliente = aba.querySelector('.jss32, .jss30');
             const protocoloTexto = protocolo ? protocolo.textContent.trim() : "";
             const clienteTexto   = cliente   ? cliente.textContent.trim()   : "";
-            return `${protocoloTexto}|${clienteTexto}`;
+
+            if (protocoloTexto || clienteTexto) {
+                return `${protocoloTexto}|${clienteTexto}`;
+            }
+
+            // fallback: classes mudaram — usa o texto visível inteiro da aba como ID
+            const texto = (aba.textContent || "").replace(/\s+/g, " ").trim();
+            return texto || Math.random().toString();
         } catch {
             return Math.random().toString();
         }
+    };
+
+    // ─── INJETAR NUMERAÇÃO NA ABA ─────────────────────────────────────────────────
+    // Injeta um badge visível com o número sequencial + atributo data-twoelve-numero.
+    // Chamada apenas para abas NOVAS detectadas (evita marcar abas de navegação).
+    const marcarAbaComNumero = (aba) => {
+        if (!aba) return null;
+        const existente = aba.getAttribute('data-twoelve-numero');
+        if (existente) return existente;
+
+        contadorAba += 1;
+        aba.setAttribute('data-twoelve-numero', String(contadorAba));
+
+        const badge = document.createElement('span');
+        badge.className = 'twoelve-numero-badge';
+        badge.textContent = String(contadorAba);
+        badge.title = 'TwoElve - aba #' + contadorAba;
+        badge.style.cssText = [
+            'display:inline-block',
+            'min-width:16px',
+            'height:16px',
+            'line-height:16px',
+            'padding:0 4px',
+            'margin-right:6px',
+            'border-radius:8px',
+            'background:#d9a13f',
+            'color:#1a1a1a',
+            'font-size:10px',
+            'font-weight:700',
+            'text-align:center',
+            'box-shadow:0 1px 2px rgba(0,0,0,.4)'
+        ].join(';');
+        aba.prepend(badge);
+
+        console.log(`[TwoElve] 🔢 Nova aba numerada: #${contadorAba}`);
+        return String(contadorAba);
     };
 
     // ─── PROCESSAR ABA DA FILA ────────────────────────────────────────────────────
     const processarAba = async (novaAba) => {
         const protocolo = novaAba.querySelector('.MuiTypography-root.jss31');
         const cliente   = novaAba.querySelector('.jss30');
+        const numero    = novaAba.getAttribute('data-twoelve-numero') || '-';
 
         console.log("[TwoElve] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         console.log("[TwoElve] 🆕 PROCESSANDO ABA!");
+        console.log(`[TwoElve]    Numeração : #${numero}`);
         console.log(`[TwoElve]    Protocolo : ${protocolo ? protocolo.textContent.trim() : "N/A"}`);
         console.log(`[TwoElve]    Cliente   : ${cliente   ? cliente.textContent.trim()   : "N/A"}`);
         console.log(`[TwoElve]    Na fila   : ${filaDeAbas.length} restante(s)`);
@@ -220,13 +370,12 @@ const enviarMensagemSeHorarioComercial = () => {
 
         // [bug#2] Reset sempre executa — independente do tipo de atendimento
         // [bug#5] Após reset, processa próxima da fila se houver
+        // Correção: rescan SEMPRE após o reset — abas que chegaram durante o
+        // processamento (com o mutation "engolido" pela flag) são detectadas agora.
         setTimeout(() => {
             jaProcessouNovaAba = false;
-            console.log("[TwoElve] 🔄 Sistema resetado, aguardando próximo atendimento...");
-            if (filaDeAbas.length > 0) {
-                console.log(`[TwoElve] 📋 ${filaDeAbas.length} aba(s) na fila — processando próxima...`);
-                verificarEProcessarNovasAbas();
-            }
+            console.log("[TwoElve] 🔄 Sistema resetado — rescaneando abas...");
+            verificarEProcessarNovasAbas();
         }, 5000);
     };
 
@@ -272,6 +421,7 @@ const enviarMensagemSeHorarioComercial = () => {
 
             // [bug#5] Marca todas as novas abas imediatamente e empurra na fila
             novasAbas.forEach(aba => {
+                marcarAbaComNumero(aba);
                 aba.setAttribute('data-twoelve-processada', 'true');
                 filaDeAbas.push(aba);
             });
@@ -312,6 +462,12 @@ const enviarMensagemSeHorarioComercial = () => {
 
             observer.observe(document.body, { childList: true, subtree: true });
             console.log("[TwoElve] 👀 Monitoramento ativo! Somente NOVAS abas serão processadas.");
+
+            // Rede de segurança: varredura periódica — garante que nenhuma aba nova
+            // passe despercebida mesmo se algum mutation for perdido pelo observer.
+            setInterval(() => {
+                if (!jaProcessouNovaAba) verificarEProcessarNovasAbas();
+            }, 10000);
         }, 46000);
     };
 
@@ -339,7 +495,8 @@ const enviarMensagemSeHorarioComercial = () => {
                 processou: jaProcessouNovaAba,
                 abasMonitoradas: abasAnteriores.size,
                 ativo: observadorAtivo,
-                fila: filaDeAbas.length
+                fila: filaDeAbas.length,
+                abasNumeradas: contadorAba
             });
         }
     };

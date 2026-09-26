@@ -10,3 +10,6 @@ Desktop.ini
 
 # Instalador gerado na hora
 *.cmd
+
+# Ferramenta local de bump de versao
+bump-versao.js
