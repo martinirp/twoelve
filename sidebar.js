@@ -144,40 +144,54 @@
             z-index: 999999;
             display: none;
             flex-direction: column;
-            gap: 10px;
-            padding: 14px 0;
+            gap: 8px;
+            padding: 10px 0;
+            transition: right 0.22s cubic-bezier(0.4, 0, 0.2, 1);
         }
         body.twoelve-lateral .twoelve-abas {
             display: flex;
         }
+        /* aba pequena, sem texto — só a setinha < (e > quando aberta)
+           metade fica cortada para fora da tela */
         .twoelve-aba {
             position: relative;
             width: 64px;
-            height: 74px;
+            height: 56px;
             border: 2px solid #000000;
             border-right: 0;
-            border-radius: 10px 0 0 10px;
+            border-radius: 8px 0 0 8px;
             color: #ffffff;
             font-family: 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1;
             cursor: pointer;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 3px;
-            box-shadow: 3px 3px 0px rgba(0,0,0,0.35);
-            transition: width 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+            justify-content: flex-start;
+            padding: 0 0 0 12px;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+            transition: filter 0.15s ease, box-shadow 0.15s ease;
             overflow: hidden;
+            transform: translateX(32px); /* metade para fora da tela */
         }
-        .twoelve-aba .twoelve-aba-emoji {
-            font-size: 20px;
-            line-height: 1;
+        .twoelve-aba .twoelve-aba-seta::before {
+            content: '<';
         }
-        .twoelve-aba .twoelve-aba-rotulo {
-            font-size: 9px;
-            font-weight: 800;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
+        .twoelve-aba:hover {
+            filter: brightness(1.12);
+            box-shadow: 3px 3px 0px rgba(0,0,0,0.4);
+        }
+        .twoelve-aba.twoelve-aba-ativa {
+            filter: brightness(1.25);
+            box-shadow: 4px 4px 0px #000000;
+            z-index: 2;
+            transform: none; /* fica inteira ao abrir */
+            justify-content: center;
+            padding: 0;
+        }
+        .twoelve-aba.twoelve-aba-ativa .twoelve-aba-seta::before {
+            content: '>';
         }
         /* cada aba com uma cor diferente */
         .twoelve-aba[data-action="utils"]      { background: #2563eb; }
@@ -186,16 +200,16 @@
         .twoelve-aba[data-action="visita"]     { background: #dc2626; }
         .twoelve-aba[data-action="encaminhar"] { background: #7c3aed; }
         .twoelve-aba[data-action="config"]     { background: #64748b; }
-        .twoelve-aba:hover {
-            width: 86px;
-            box-shadow: 5px 5px 0px rgba(0,0,0,0.5);
-            filter: brightness(1.08);
+        /* com a janela aberta, só a aba clicada fica visível (outras somem)
+           e o container arrasta para a esquerda até a borda da janela de 700px */
+        body.twoelve-lateral.twoelve-painel-aberto .twoelve-aba {
+            display: none;
         }
-        .twoelve-aba.twoelve-aba-ativa {
-            width: 86px;
-            box-shadow: 5px 5px 0px #000000;
-            filter: brightness(1.15);
-            z-index: 2;
+        body.twoelve-lateral.twoelve-painel-aberto .twoelve-aba.twoelve-aba-ativa {
+            display: flex;
+        }
+        body.twoelve-lateral.twoelve-painel-aberto .twoelve-abas {
+            right: calc(700px + 12px); /* borda esquerda da janela + folga */
         }
         body.twoelve-lateral .twoelve-pin {
             display: none;
@@ -209,12 +223,12 @@
     const abas = document.createElement('div');
     abas.className = 'twoelve-abas';
     abas.innerHTML = `
-        <button class="twoelve-aba" data-action="utils"><span class="twoelve-aba-emoji">🛠️</span><span class="twoelve-aba-rotulo">Utils</span></button>
-        <button class="twoelve-aba" data-action="mensagens"><span class="twoelve-aba-emoji">💬</span><span class="twoelve-aba-rotulo">Mensagens</span></button>
-        <button class="twoelve-aba" data-action="suporte"><span class="twoelve-aba-emoji">✅</span><span class="twoelve-aba-rotulo">Suporte</span></button>
-        <button class="twoelve-aba" data-action="visita"><span class="twoelve-aba-emoji">🚗</span><span class="twoelve-aba-rotulo">Visita</span></button>
-        <button class="twoelve-aba" data-action="encaminhar"><span class="twoelve-aba-emoji">📤</span><span class="twoelve-aba-rotulo">Encaminhar</span></button>
-        <button class="twoelve-aba" data-action="config"><span class="twoelve-aba-emoji">⚙️</span><span class="twoelve-aba-rotulo">Config</span></button>
+        <button class="twoelve-aba" data-action="utils"><span class="twoelve-aba-seta"></span></button>
+        <button class="twoelve-aba" data-action="mensagens"><span class="twoelve-aba-seta"></span></button>
+        <button class="twoelve-aba" data-action="suporte"><span class="twoelve-aba-seta"></span></button>
+        <button class="twoelve-aba" data-action="visita"><span class="twoelve-aba-seta"></span></button>
+        <button class="twoelve-aba" data-action="encaminhar"><span class="twoelve-aba-seta"></span></button>
+        <button class="twoelve-aba" data-action="config"><span class="twoelve-aba-seta"></span></button>
     `;
     document.body.appendChild(abas);
 
@@ -353,9 +367,18 @@
     let modalAbertoAcao = null;
 
     function marcarAbaAtiva(acao) {
+        let corAba = null;
         document.querySelectorAll('.twoelve-wrapper [data-action], .twoelve-abas [data-action]').forEach((b) => {
-            b.classList.toggle('twoelve-aba-ativa', acao ? b.getAttribute('data-action') === acao : false);
+            const ativa = acao ? b.getAttribute('data-action') === acao : false;
+            b.classList.toggle('twoelve-aba-ativa', ativa);
+            if (ativa && b.classList.contains('twoelve-aba')) {
+                corAba = getComputedStyle(b).backgroundColor;
+            }
         });
+        // propaga a cor da aba para a bordinha do painel
+        if (corAba) {
+            document.documentElement.style.setProperty('--twoelve-aba-cor', corAba);
+        }
     }
 
     async function gerenciarModal(funcaoAbrir, acao) {
