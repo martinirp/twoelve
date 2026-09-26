@@ -260,22 +260,22 @@
                 to   { transform: scale(1); opacity: 1; }
             }
 
-            /* ===== MODO LATERAL: modais viram painéis fixos encostados na lateral ===== */
+            /* ===== MODO LATERAL: modais viram painéis de 700px com bordinha na cor da aba ===== */
             body.twoelve-lateral .twoelve-modal-container {
                 top: 0;
-                right: 96px;
+                right: 0;
                 bottom: 0;
                 left: auto;
                 transform: none;
-                width: 340px;
+                width: 700px;
                 min-width: 280px;
-                max-width: calc(100vw - 108px);
+                max-width: calc(100vw - 88px);
                 min-height: 100vh;
                 max-height: 100vh;
                 height: auto;
                 border: 0;
-                border-left: 2px solid var(--modal-custom-border, #000000);
-                box-shadow: -6px 6px 0px var(--modal-custom-border, #000000);
+                border-left: 4px solid var(--twoelve-aba-cor, #000000);
+                box-shadow: -6px 6px 0px rgba(0,0,0,0.25);
                 animation: twoelve-panel-in 0.22s cubic-bezier(0.4, 0, 0.2, 1);
             }
             body.twoelve-lateral .twoelve-modal-body {
@@ -391,6 +391,11 @@
             this.container.appendChild(body);
             document.body.appendChild(this.container);
 
+            // No modo lateral, ao abrir a janela as outras abas somem
+            if (lateral) {
+                document.body.classList.add('twoelve-painel-aberto');
+            }
+
             // Resize handle (lado direito) — desativado no modo lateral
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'twoelve-modal-resize-handle';
@@ -433,6 +438,12 @@
                 if (window._ultimoModalAberto === this) {
                     window._ultimoModalAberto = null;
                 }
+            }
+
+            // Se não sobrar painel no modo lateral, as abas voltam a aparecer
+            const lateral2 = document.body.classList.contains('twoelve-lateral');
+            if (lateral2 && !document.querySelector('.twoelve-modal-container')) {
+                document.body.classList.remove('twoelve-painel-aberto');
             }
 
             // Mostra a toolbar novamente
