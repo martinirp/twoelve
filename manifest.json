@@ -2,9 +2,8 @@
   "manifest_version": 3,
 "name": "TwoElve v6.1",
   "version": "6.1.1",
-  "description": "Automação para plataforma Elleven (DEV - com saudação automática)",
+  "description": "AutomaÃ§Ã£o para plataforma Elleven (DEV - com saudaÃ§Ã£o automÃ¡tica)",
   "twoelveSaudacao": true,
->>>>>>> main
   "permissions": [
     "storage",
     "tabs"
