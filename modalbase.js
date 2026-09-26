@@ -269,7 +269,7 @@
                 transform: none;
                 width: 700px;
                 min-width: 280px;
-                max-width: calc(100vw - 88px);
+                max-width: calc(100vw - 152px);
                 min-height: 100vh;
                 max-height: 100vh;
                 height: auto;

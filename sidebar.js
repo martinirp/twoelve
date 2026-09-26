@@ -151,15 +151,15 @@
         body.twoelve-lateral .twoelve-abas {
             display: flex;
         }
-        /* aba discreta, sem texto — só uma setinha fina (e > quando aberta)
-           metade fica cortada para fora da tela, tons suaves e quase neutros */
+        /* aba discreta em formato de guia de pasta — sem texto, só uma setinha fina
+           (e > quando aberta); metade fica cortada para fora da tela */
         .twoelve-aba {
             position: relative;
-            width: var(--twoelve-aba-largura, 64px);
-            height: 34px;
+            width: var(--twoelve-aba-largura, 128px);
+            height: 40px;
             border: 1px solid rgba(0,0,0,0.14);
             border-right: 0;
-            border-radius: 6px 0 0 6px;
+            border-radius: 0 0 6px 0;
             color: rgba(255,255,255,0.9);
             font-family: 'Inter', sans-serif;
             font-size: 12px;
@@ -169,12 +169,13 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding: 0 0 0 9px;
+            padding: 0 0 0 12px;
             box-shadow: 1px 1px 0px rgba(0,0,0,0.08);
             transition: filter 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
             overflow: hidden;
             opacity: 0.62;
-            transform: translateX(calc(var(--twoelve-aba-largura, 64px) / 2)); /* metade para fora da tela */
+            clip-path: polygon(0 10px, 14px 0, 100% 0, 100% 100%, 0 100%);
+            transform: translateX(calc(var(--twoelve-aba-largura, 128px) / 2)); /* metade para fora da tela */
         }
         .twoelve-aba .twoelve-aba-seta::before {
             content: '<';
@@ -351,7 +352,7 @@
             aplicarLayoutToolbar(config.toolbarLayout);
             // largura da aba lateral (metade fica visível na borda)
             const largura = parseInt(config.larguraAba, 10);
-            if (largura && largura >= 40 && largura <= 120) {
+            if (largura && largura >= 40 && largura <= 240) {
                 document.documentElement.style.setProperty('--twoelve-aba-largura', largura + 'px');
             } else {
                 document.documentElement.style.removeProperty('--twoelve-aba-largura');
