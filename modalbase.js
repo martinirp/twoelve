@@ -260,14 +260,15 @@
                 to   { transform: scale(1); opacity: 1; }
             }
 
-            /* ===== MODO LATERAL: modais viram painéis de 700px com bordinha na cor da aba ===== */
+            /* ===== MODO LATERAL: modais viram painéis com bordinha na cor da aba,
+                   largura configurável (default 700px) ===== */
             body.twoelve-lateral .twoelve-modal-container {
                 top: 0;
                 right: 0;
                 bottom: 0;
                 left: auto;
                 transform: none;
-                width: 700px;
+                width: var(--twoelve-aba-aberta-largura, 700px);
                 min-width: 280px;
                 max-width: calc(100vw - 88px);
                 min-height: 100vh;
