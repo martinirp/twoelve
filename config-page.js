@@ -25,7 +25,8 @@
     temaPagina: 'claro',
     saudacaoMensagem: '',
     saudacaoPrevia: false,
-    toolbarLayout: 'superior'
+    toolbarLayout: 'superior',
+    larguraAba: 64
   };
 
   // saudação automática existe SOMENTE na branch dev (flag "twoelveSaudacao" no manifest)
@@ -379,6 +380,11 @@
     const layoutRadio = document.querySelector('input[name="twoelve-toolbar-layout"][value="' + (c.toolbarLayout === 'lateral' ? 'lateral' : 'superior') + '"]');
     if (layoutRadio) layoutRadio.checked = true;
 
+    // largura da aba no modo Lateral
+    const largura = c.larguraAba ?? 64;
+    $('config-largura-aba').value = largura;
+    $('largura-aba-valor').textContent = largura + 'px';
+
     atualizarSwatches();
   }
 
@@ -564,6 +570,13 @@
       radio.addEventListener('change', () => {
         if (radio.checked) salvarConfiguracoes({ toolbarLayout: radio.value });
       });
+    });
+
+    // largura da aba lateral
+    $('config-largura-aba').addEventListener('input', (e) => {
+      const valor = parseInt(e.target.value, 10) || 64;
+      $('largura-aba-valor').textContent = valor + 'px';
+      salvarConfiguracoes({ larguraAba: valor });
     });
 
     // swatches de cor → abrem o diálogo centralizado
