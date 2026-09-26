@@ -159,17 +159,24 @@
         body.twoelve-lateral .twoelve-btn,
         body.twoelve-lateral .twoelve-config {
             width: 150px;
-            padding: 8px 12px;
+            padding: 9px 12px;
             text-align: left;
             white-space: nowrap;
             overflow: hidden;
             margin-bottom: 8px;
-            transform: translateX(calc(100% - 26px)); /* abinha encolhida: só uma parte fica visível */
+            transform: translateX(calc(100% - 40px)); /* abinha encolhida: só uma parte fica visível */
             transition: transform 0.18s ease;
         }
         body.twoelve-lateral .twoelve-btn:hover,
         body.twoelve-lateral .twoelve-config:hover {
-            transform: translateX(calc(100% - 26px)); /* mantém encolhida; o clique direto abre o modal */
+            transform: translateX(calc(100% - 40px)); /* mantém encolhida; o clique direto abre o modal */
+            box-shadow: 5px 5px 0px #000000;
+        }
+        body.twoelve-lateral .twoelve-btn.twoelve-aba-ativa,
+        body.twoelve-lateral .twoelve-config.twoelve-aba-ativa {
+            background: #000000;
+            color: #ffffff;
+            transform: translateX(calc(100% - 40px));
             box-shadow: 5px 5px 0px #000000;
         }
         body.twoelve-lateral .twoelve-pin {
@@ -312,21 +319,41 @@
     // GERENCIADOR DE MODAIS - TOGGLE CORRETO
     // ==============================================
     let modalAberto = null;
+    let modalAbertoAcao = null;
 
-    async function gerenciarModal(funcaoAbrir) {
-        if (modalAberto) {
+    function marcarAbaAtiva(acao) {
+        document.querySelectorAll('.twoelve-wrapper [data-action]').forEach((b) => {
+            b.classList.toggle('twoelve-aba-ativa', acao ? b.getAttribute('data-action') === acao : false);
+        });
+    }
+
+    async function gerenciarModal(funcaoAbrir, acao) {
+        if (modalAberto && modalAbertoAcao === acao) {
+            // mesma aba: fecha (toggle)
             modalAberto.fechar();
             modalAberto = null;
+            modalAbertoAcao = null;
+            marcarAbaAtiva(null);
             return;
+        }
+        if (modalAberto) {
+            // trocou de aba: fecha a atual e abre a nova
+            modalAberto.fechar();
+            modalAberto = null;
+            modalAbertoAcao = null;
         }
         await funcaoAbrir();
         if (window._ultimoModalAberto) {
             modalAberto = window._ultimoModalAberto;
+            modalAbertoAcao = acao || null;
             const callbackOriginal = modalAberto.onFechar;
             modalAberto.onFechar = () => {
                 modalAberto = null;
+                modalAbertoAcao = null;
+                marcarAbaAtiva(null);
                 if (callbackOriginal) callbackOriginal();
             };
+            marcarAbaAtiva(acao || null);
         }
     }
 
@@ -350,7 +377,7 @@
     if (visitaBtn) {
         visitaBtn.addEventListener('click', () => {
             if (typeof window.abrirModalVisitas === 'function') {
-                gerenciarModal(() => window.abrirModalVisitas());
+                gerenciarModal(() => window.abrirModalVisitas(), 'visita');
             } else {
                 console.error('Função abrirModalVisitas não encontrada');
                 alert('Módulo de Visitas não carregado. Adicione visit.js no manifest.json');
@@ -362,7 +389,7 @@
     if (mensagensBtn) {
         mensagensBtn.addEventListener('click', () => {
             if (typeof window.abrirModalMensagens === 'function') {
-                gerenciarModal(() => window.abrirModalMensagens());
+                gerenciarModal(() => window.abrirModalMensagens(), 'mensagens');
             } else {
                 console.error('Função abrirModalMensagens não encontrada');
                 alert('Módulo de Mensagens não carregado. Adicione messages.js no manifest.json');
@@ -374,7 +401,7 @@
     if (encaminharBtn) {
         encaminharBtn.addEventListener('click', () => {
             if (typeof window.abrirModalEncaminhar === 'function') {
-                gerenciarModal(() => window.abrirModalEncaminhar());
+                gerenciarModal(() => window.abrirModalEncaminhar(), 'encaminhar');
             } else {
                 console.error('Função abrirModalEncaminhar não encontrada');
                 alert('Módulo de Encaminhamentos não carregado. Adicione forward.js no manifest.json');
@@ -386,7 +413,7 @@
     if (utilsBtn) {
         utilsBtn.addEventListener('click', () => {
             if (typeof window.abrirModalUtils === 'function') {
-                gerenciarModal(() => window.abrirModalUtils());
+                gerenciarModal(() => window.abrirModalUtils(), 'utils');
             } else {
                 console.error('Função abrirModalUtils não encontrada');
                 alert('Módulo de Utilitários não carregado. Adicione utils.js no manifest.json');
@@ -398,7 +425,7 @@
     if (suporteBtn) {
         suporteBtn.addEventListener('click', () => {
             if (typeof window.abrirModalSuporte === 'function') {
-                gerenciarModal(() => window.abrirModalSuporte());
+                gerenciarModal(() => window.abrirModalSuporte(), 'suporte');
             } else {
                 console.error('Função abrirModalSuporte não encontrada');
                 alert('Módulo de Suporte não carregado. Adicione content.js no manifest.json');
