@@ -68,6 +68,8 @@
     const encontrarBotaoEnviar = () => {
         const candidatos = [
             'button[type="submit"][tooltip="Enviar mensagem"]',
+            'button[type="submit"][title="Enviar mensagem"]',
+            'button[type="submit"].MuiIconButton-root',
             'button[type="submit"]',
             'button[aria-label*="enviar" i], button[title*="enviar" i], button[tooltip*="enviar" i]',
             'button[aria-label*="send" i], button[title*="send" i], button[tooltip*="send" i]'
@@ -76,7 +78,7 @@
             const el = document.querySelector(sel);
             if (el) return { botao: el, origem: sel };
         }
-        // varredura final: qualquer botão cujo texto/atributos contenham "enviar"/"send"
+        // varredura por texto/atributos contendo "enviar"/"send"
         const alvo = Array.from(document.querySelectorAll('button')).find((b) => {
             const texto = ((b.textContent || '') + ' ' +
                 (b.getAttribute('aria-label') || '') + ' ' +
@@ -84,7 +86,17 @@
                 (b.getAttribute('tooltip') || '')).toLowerCase();
             return (texto.includes('enviar') || texto.includes('send')) && texto.length < 60;
         });
-        return alvo ? { botao: alvo, origem: 'texto contém enviar/send' } : null;
+        if (alvo) return { botao: alvo, origem: 'texto contém enviar/send' };
+        // último recurso: ícone do Material "send" (setinha ↗) dentro de um botão
+        const icone = Array.from(document.querySelectorAll('button svg path')).find((p) => {
+            const d = (p.getAttribute('d') || '').replace(/\s+/g, '');
+            return d.includes('2.01') && d.includes('M2.01');
+        });
+        if (icone) {
+            const botao = icone.closest('button');
+            if (botao) return { botao, origem: 'ícone material send (svg)' };
+        }
+        return null;
     };
 
     // ─── CLICAR BOTÃO ENVIAR (com retry se desabilitado) ──────────────────────────
@@ -105,6 +117,11 @@
                 setTimeout(tentar, 200);
                 return;
             }
+            // sequência completa de clique (foco + pointer/mouse) para botões MUI/React
+            try { botao.focus(); } catch (e) {}
+            botao.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' }));
+            botao.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+            botao.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
             botao.click();
             resolve(true);
         };
@@ -115,6 +132,8 @@
     async function escreverNoChat(elemento, valor) {
         if (!elemento) return false;
         try {
+            // foca o campo como se o atendente estivesse digitando (habilita o botão enviar)
+            try { elemento.focus(); } catch (e) {}
             const proto = (elemento instanceof HTMLTextAreaElement)
                 ? window.HTMLTextAreaElement.prototype
                 : window.HTMLInputElement.prototype;
@@ -154,26 +173,49 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
                 return resolve(false);
             }
 
-            const delayMs = Math.floor(Math.random() * (8000 - 5000 + 1)) + 5000; // 5-8s
+            // captura o botão JÁ (antes do delay) — se o React recriar o nó na espera,
+            // re-busca no momento do clique para nunca cair em "botão saiu do DOM"
+            const alvo = encontrarBotaoEnviar();
+            const delayMs = Math.floor(Math.random() * (3000 - 2000 + 1)) + 2000; // 2–3s (antes do rescan de 5s)
             console.log(`[TwoElve] 🕐 Horário comercial (${horas}:${String(minutos).padStart(2,'0')}) — aguardando ${(delayMs/1000).toFixed(1)}s para enviar...`);
+
+            const tentarEnter = () => {
+                console.warn("[TwoElve] ⚠️ Botão de enviar indisponível — tentando Enter como último recurso.");
+                textarea.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true
+                }));
+            };
+
             setTimeout(async () => {
-                const alvo = encontrarBotaoEnviar();
-                if (alvo) {
-                    console.log(`[TwoElve] 🎯 Botão enviar encontrado — ${alvo.origem}`);
-                    const clicado = await clicarBotaoEnviar(alvo.botao);
-                    if (clicado) {
-                        console.log("[TwoElve] 📤 Mensagem enviada automaticamente!");
-                    } else {
-                        console.warn("[TwoElve] ⚠️ Não consegui clicar no botão de enviar (desabilitado ou saiu do DOM).");
-                    }
-                    resolve(clicado);
-                } else {
-                    console.warn("[TwoElve] ⚠️ Botão de enviar não encontrado — tentando Enter como último recurso.");
-                    textarea.dispatchEvent(new KeyboardEvent('keydown', {
-                        key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true
-                    }));
-                    resolve(false);
+                // re-busca um nó FRESCO do botão (o React pode ter recriado o elemento)
+                const fresco = encontrarBotaoEnviar();
+                const alvoFinal = (fresco && document.body.contains(fresco.botao)) ? fresco : (
+                    (alvo && document.body.contains(alvo.botao)) ? alvo : null
+                );
+
+                if (!alvoFinal) {
+                    tentarEnter();
+                    return resolve(false);
                 }
+
+                console.log(`[TwoElve] 🎯 Botão enviar encontrado — ${alvoFinal.origem}`);
+                const clicado = await clicarBotaoEnviar(alvoFinal.botao);
+                if (clicado) {
+                    // confere se a mensagem saiu do campo (indica envio de fato)
+                    setTimeout(() => {
+                        const restou = Array.from(
+                            document.querySelectorAll(SELETORES_TEXTAREA.join(','))
+                        ).some((el) => (el.value || '').trim());
+                        if (restou) {
+                            console.warn("[TwoElve] ⚠️ Clique no enviar executado, mas ainda há texto no campo — confira se a mensagem saiu.");
+                        } else {
+                            console.log("[TwoElve] 📤 Mensagem enviada automaticamente!");
+                        }
+                    }, 1500);
+                } else {
+                    tentarEnter();
+                }
+                resolve(clicado);
             }, delayMs);
         });
     };
