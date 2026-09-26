@@ -26,7 +26,7 @@
     saudacaoMensagem: '',
     saudacaoPrevia: false,
     toolbarLayout: 'superior',
-    larguraAba: 64
+    larguraAba: 128
   };
 
   // saudação automática existe SOMENTE na branch dev (flag "twoelveSaudacao" no manifest)
@@ -381,7 +381,7 @@
     if (layoutRadio) layoutRadio.checked = true;
 
     // largura da aba no modo Lateral
-    const largura = c.larguraAba ?? 64;
+    const largura = c.larguraAba ?? 128;
     $('config-largura-aba').value = largura;
     $('largura-aba-valor').textContent = largura + 'px';
 
@@ -574,7 +574,7 @@
 
     // largura da aba lateral
     $('config-largura-aba').addEventListener('input', (e) => {
-      const valor = parseInt(e.target.value, 10) || 64;
+      const valor = parseInt(e.target.value, 10) || 128;
       $('largura-aba-valor').textContent = valor + 'px';
       salvarConfiguracoes({ larguraAba: valor });
     });
