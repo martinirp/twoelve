@@ -11,6 +11,10 @@
   <header class="topo">
     <h1>⚙️ Configurações</h1>
     <div class="acoes-topo">
+      <div class="tema-switch" id="config-tema-pagina">
+        <button type="button" data-tema="claro" class="ativa">☀️ Claro</button>
+        <button type="button" data-tema="escuro">🌙 Escuro</button>
+      </div>
       <span id="versao-local" class="badge-steel">v?</span>
       <button id="btn-atualizar" class="btn btn-update" data-bs-toggle="modal" data-bs-target="#modal-atualizar">🚀 ATUALIZAR</button>
     </div>
@@ -131,13 +135,25 @@
         <div class="card steel h-100">
           <div class="card-header">🤖 Automação</div>
           <div class="card-body">
-            <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="config-saudacao" />
-              <label class="form-check-label" for="config-saudacao">Saudação automática em novas abas</label>
+            <div data-saudacao>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="config-saudacao" />
+                <label class="form-check-label" for="config-saudacao">Saudação Automática</label>
+              </div>
+
+              <label class="form-label mt-2" for="config-saudacao-mensagem">Mensagem de saudação</label>
+              <input type="text" class="form-control" id="config-saudacao-mensagem" maxlength="500" placeholder="Ex.: Bom dia, como posso ajudar?" />
+
+              <div class="form-check form-switch mt-3 mb-1">
+                <input class="form-check-input" type="checkbox" id="config-saudacao-previa" />
+                <label class="form-check-label" for="config-saudacao-previa">Prévia da mensagem no chat (não envia)</label>
+              </div>
+
+              <hr class="my-3" />
             </div>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="config-overlay" />
-              <label class="form-check-label" for="config-overlay">Remover overlay de opções</label>
+              <label class="form-check-label" for="config-overlay">Overlay</label>
             </div>
           </div>
         </div>

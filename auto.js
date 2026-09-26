@@ -6,6 +6,11 @@
 (function() {
     console.log("[TwoElve] 🚀 Iniciando auto.js...");
 
+    // Saudação automática existe SOMENTE na branch dev (flag "twoelveSaudacao" no manifest)
+    const saudacaoDisponivel = () => {
+        try { return !!chrome.runtime.getManifest().twoelveSaudacao; } catch (e) { return false; }
+    };
+
     let abasAnteriores = new Set();
     let jaProcessouNovaAba = false;
     let observadorAtivo = true;
@@ -244,6 +249,13 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
 
     // ─── PREENCHER MENSAGEM ───────────────────────────────────────────────────────
     const preencherMensagem = async () => {
+        if (!saudacaoDisponivel()) {
+            console.log("[TwoElve] 🔕 Saudação indisponível nesta versão (somente na branch dev).");
+            return false;
+        }
+
+        const controles = window.TwoElveControle || {};
+
         const textarea = await aguardarUmDos(SELETORES_TEXTAREA, 7000);
 
         if (!textarea) {
@@ -257,20 +269,25 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
             return true;
         }
 
+        // mensagem personalizada (config) ou saudação por horário
+        const personalizada = (controles.saudacaoMensagem || '').trim();
         const horas = new Date().getHours();
-        const mensagem = horas < 12
-            ? "Bom dia, como posso ajudar?"
-            : horas < 18
-                ? "Boa tarde, como posso ajudar?"
-                : "Boa noite, como posso ajudar?";
+        const mensagem = personalizada ||
+            (horas < 12 ? "Bom dia, como posso ajudar?" :
+             horas < 18 ? "Boa tarde, como posso ajudar?" :
+             "Boa noite, como posso ajudar?");
 
         const escrito = await escreverNoChat(textarea, mensagem);
+        if (!escrito) return false;
 
-        if (escrito) {
-            await enviarMensagemSeHorarioComercial(textarea);
+        // prévia: a mensagem fica no chat (visível para o atendente) mas NÃO é enviada
+        if (controles.saudacaoPrevia === true) {
+            console.log("[TwoElve] 👁️ Prévia ativada — mensagem escrita no chat mas NÃO enviada:", mensagem);
+            return true;
         }
 
-        return escrito;
+        await enviarMensagemSeHorarioComercial(textarea);
+        return true;
     };
 
     // ─── ID ÚNICO DA ABA ──────────────────────────────────────────────────────────
@@ -358,7 +375,9 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         const tipo = verificarTipoAtendimento();
 
         if (tipo === "normal") {
-            if (window.TwoElveControle && window.TwoElveControle.autoMensagem === false) {
+            if (!saudacaoDisponivel()) {
+                console.log("[TwoElve] 🔕 Saudação não disponível nesta versão (somente na branch dev).");
+            } else if (window.TwoElveControle && window.TwoElveControle.autoMensagem === false) {
                 console.log("[TwoElve] 🔕 Saudação desativada pelo toggle.");
             } else {
                 await preencherMensagem();

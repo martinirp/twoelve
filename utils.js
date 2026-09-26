@@ -1104,21 +1104,27 @@
     // ==============================================
     window.TwoElveControle = {
         autoOverlay: true,
-        autoMensagem: true
+        autoMensagem: true,
+        saudacaoMensagem: '',
+        saudacaoPrevia: false
     };
     
-    chrome.storage.local.get(['autoOverlay', 'autoMensagem'], (result) => {
+    chrome.storage.local.get(['autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia'], (result) => {
         window.TwoElveControle.autoOverlay = result.autoOverlay !== false;
         window.TwoElveControle.autoMensagem = result.autoMensagem !== false;
+        window.TwoElveControle.saudacaoMensagem = result.saudacaoMensagem || '';
+        window.TwoElveControle.saudacaoPrevia = result.saudacaoPrevia === true;
         console.log('[TwoElve] Controles carregados:', window.TwoElveControle);
     });
 
     // Atualiza os controles quando a página de Configurações muda as automações
     chrome.runtime.onMessage.addListener((msg) => {
         if (msg && msg.action === 'twoelve-config-changed') {
-            chrome.storage.local.get(['autoOverlay', 'autoMensagem'], (result) => {
+            chrome.storage.local.get(['autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia'], (result) => {
                 window.TwoElveControle.autoOverlay = result.autoOverlay !== false;
                 window.TwoElveControle.autoMensagem = result.autoMensagem !== false;
+                window.TwoElveControle.saudacaoMensagem = result.saudacaoMensagem || '';
+                window.TwoElveControle.saudacaoPrevia = result.saudacaoPrevia === true;
                 console.log('[TwoElve] Controles atualizados pela Configuração:', window.TwoElveControle);
             });
         }

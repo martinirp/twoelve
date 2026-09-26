@@ -21,8 +21,16 @@
     opacidade: 1,
     usarEmotes: true,
     autoMensagem: true,
-    autoOverlay: true
+    autoOverlay: true,
+    temaPagina: 'claro',
+    saudacaoMensagem: '',
+    saudacaoPrevia: false
   };
+
+  // saudação automática existe SOMENTE na branch dev (flag "twoelveSaudacao" no manifest)
+  const USA_SAUDACAO = (() => {
+    try { return !!chrome.runtime.getManifest().twoelveSaudacao; } catch (e) { return false; }
+  })();
 
   const PRESET_THEMES = {
     'Library': {
@@ -66,7 +74,8 @@
   const EXPORT_KEYS = [
     'customButtons', 'customVisits', 'whitePanelMessages',
     'forwardButtons', 'customTheme', 'controleAbas',
-    'autoOverlay', 'autoMensagem', 'twoelveConfig'
+    'autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia',
+    'twoelveConfig'
   ];
 
   const $ = (id) => document.getElementById(id);
@@ -267,9 +276,24 @@
     $('opacidade-valor').textContent = Math.round((c.opacidade ?? 1) * 100) + '%';
     $('config-emotes').checked = c.usarEmotes !== false;
     $('config-saudacao').checked = c.autoMensagem !== false;
+    $('config-saudacao-mensagem').value = c.saudacaoMensagem || '';
+    $('config-saudacao-previa').checked = c.saudacaoPrevia === true;
     $('config-overlay').checked = c.autoOverlay !== false;
 
+    aplicarTemaPagina(c.temaPagina || 'claro', false);
     atualizarSwatches();
+  }
+
+  // ---------- tema da própria página (claro/escuro) ----------
+  function aplicarTemaPagina(tema, salvar) {
+    const escuro = tema === 'escuro';
+    document.body.classList.toggle('tema-escuro', escuro);
+    document.querySelectorAll('#config-tema-pagina button').forEach((btn) => {
+      btn.classList.toggle('ativa', btn.dataset.tema === tema);
+    });
+    if (salvar !== false && tema !== (configAtual.temaPagina || 'claro')) {
+      salvarConfiguracoes({ temaPagina: tema });
+    }
   }
 
   // ---------- swatches e diálogo de cor ----------
@@ -340,11 +364,18 @@
       configAtual.cores = { ...DEFAULTS.cores, ...(configAtual.cores || {}) };
       configAtual.fonte = { ...DEFAULTS.fonte, ...(configAtual.fonte || {}) };
 
-      // toggles de automação ficam em chaves próprias (autoMensagem/autoOverlay)
+      // toggles de automação ficam em chaves próprias
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        const resAut = await chrome.storage.local.get(['autoMensagem', 'autoOverlay']);
+        const resAut = await chrome.storage.local.get(['autoMensagem', 'autoOverlay', 'saudacaoMensagem', 'saudacaoPrevia']);
         configAtual.autoMensagem = resAut.autoMensagem !== false;
         configAtual.autoOverlay = resAut.autoOverlay !== false;
+        configAtual.saudacaoMensagem = resAut.saudacaoMensagem || '';
+        configAtual.saudacaoPrevia = resAut.saudacaoPrevia === true;
+      }
+
+      // versão sem saudação (main): esconde os controles de saudação da página
+      if (!USA_SAUDACAO) {
+        document.querySelectorAll('[data-saudacao]').forEach((el) => { el.style.display = 'none'; });
       }
     } catch (e) {
       console.error('Erro ao carregar configurações:', e);
@@ -415,6 +446,19 @@
 
     $('config-overlay').addEventListener('change', (e) => {
       salvarToggleAutomatizacao({ autoOverlay: e.target.checked });
+    });
+
+    $('config-saudacao-mensagem').addEventListener('change', (e) => {
+      salvarToggleAutomatizacao({ saudacaoMensagem: e.target.value.trim() });
+    });
+
+    $('config-saudacao-previa').addEventListener('change', (e) => {
+      salvarToggleAutomatizacao({ saudacaoPrevia: e.target.checked });
+    });
+
+    // tema da própria página (claro/escuro)
+    document.querySelectorAll('#config-tema-pagina button').forEach((btn) => {
+      btn.addEventListener('click', () => aplicarTemaPagina(btn.dataset.tema));
     });
 
     // swatches de cor → abrem o diálogo centralizado
