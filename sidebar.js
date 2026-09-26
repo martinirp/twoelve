@@ -151,44 +151,40 @@
         body.twoelve-lateral .twoelve-abas {
             display: flex;
         }
-        /* aba discreta em formato de guia de pasta — sem texto, só uma setinha fina
-           (e > quando aberta); metade fica cortada para fora da tela */
+        /* aba quadrada com bordas arredondadas — sem texto, só a setinha (e > quando aberta)
+           metade fica cortada para fora da tela, cor sólida e forte */
         .twoelve-aba {
             position: relative;
-            width: var(--twoelve-aba-largura, 128px);
-            height: 40px;
-            border: 1px solid rgba(0,0,0,0.14);
+            width: var(--twoelve-aba-largura, 76px);
+            height: 76px;
+            border: 2px solid rgba(255,255,255,0.28);
             border-right: 0;
-            border-radius: 0 0 6px 0;
-            color: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            color: #ffffff;
             font-family: 'Inter', sans-serif;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 800;
             line-height: 1;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding: 0 0 0 12px;
-            box-shadow: 1px 1px 0px rgba(0,0,0,0.08);
-            transition: filter 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+            padding: 0 0 0 9px;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.22);
+            transition: filter 0.15s ease, box-shadow 0.15s ease;
             overflow: hidden;
-            opacity: 0.62;
-            clip-path: polygon(0 10px, 14px 0, 100% 0, 100% 100%, 0 100%);
-            transform: translateX(calc(var(--twoelve-aba-largura, 128px) / 2)); /* metade para fora da tela */
+            transform: translateX(calc(var(--twoelve-aba-largura, 76px) / 2)); /* metade para fora da tela */
         }
         .twoelve-aba .twoelve-aba-seta::before {
             content: '<';
         }
         .twoelve-aba:hover {
-            opacity: 1;
-            filter: brightness(1.08);
-            box-shadow: 2px 2px 0px rgba(0,0,0,0.12);
+            filter: brightness(1.12);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
         }
         .twoelve-aba.twoelve-aba-ativa {
-            opacity: 1;
-            filter: brightness(1.1);
-            box-shadow: 2px 2px 0px rgba(0,0,0,0.15);
+            filter: brightness(1.15);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
             z-index: 2;
             transform: none; /* fica inteira ao abrir */
             justify-content: center;
@@ -197,13 +193,13 @@
         .twoelve-aba.twoelve-aba-ativa .twoelve-aba-seta::before {
             content: '>';
         }
-        /* cada aba com um tom suave diferente */
-        .twoelve-aba[data-action="utils"]      { background: #5b8dd4; }
-        .twoelve-aba[data-action="mensagens"]  { background: #5da584; }
-        .twoelve-aba[data-action="suporte"]    { background: #c08a52; }
-        .twoelve-aba[data-action="visita"]     { background: #b96a6a; }
-        .twoelve-aba[data-action="encaminhar"] { background: #8d77b3; }
-        .twoelve-aba[data-action="config"]     { background: #7e8a96; }
+        /* cada aba com uma cor forte e viva */
+        .twoelve-aba[data-action="utils"]      { background: #2563eb; }
+        .twoelve-aba[data-action="mensagens"]  { background: #16a34a; }
+        .twoelve-aba[data-action="suporte"]    { background: #f97316; }
+        .twoelve-aba[data-action="visita"]     { background: #dc2626; }
+        .twoelve-aba[data-action="encaminhar"] { background: #7c3aed; }
+        .twoelve-aba[data-action="config"]     { background: #64748b; }
         /* com a janela aberta, só a aba clicada fica visível (outras somem)
            e o container arrasta para a esquerda até a borda da janela de 700px */
         body.twoelve-lateral.twoelve-painel-aberto .twoelve-aba {
