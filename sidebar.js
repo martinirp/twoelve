@@ -151,40 +151,43 @@
         body.twoelve-lateral .twoelve-abas {
             display: flex;
         }
-        /* aba pequena, sem texto — só a setinha < (e > quando aberta)
-           metade fica cortada para fora da tela */
+        /* aba discreta, sem texto — só uma setinha fina (e > quando aberta)
+           metade fica cortada para fora da tela, tons suaves e quase neutros */
         .twoelve-aba {
             position: relative;
             width: var(--twoelve-aba-largura, 64px);
-            height: 56px;
-            border: 2px solid #000000;
+            height: 34px;
+            border: 1px solid rgba(0,0,0,0.14);
             border-right: 0;
-            border-radius: 8px 0 0 8px;
-            color: #ffffff;
+            border-radius: 6px 0 0 6px;
+            color: rgba(255,255,255,0.9);
             font-family: 'Inter', sans-serif;
-            font-size: 20px;
-            font-weight: 800;
+            font-size: 12px;
+            font-weight: 500;
             line-height: 1;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding: 0 0 0 12px;
-            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
-            transition: filter 0.15s ease, box-shadow 0.15s ease;
+            padding: 0 0 0 9px;
+            box-shadow: 1px 1px 0px rgba(0,0,0,0.08);
+            transition: filter 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
             overflow: hidden;
+            opacity: 0.62;
             transform: translateX(calc(var(--twoelve-aba-largura, 64px) / 2)); /* metade para fora da tela */
         }
         .twoelve-aba .twoelve-aba-seta::before {
             content: '<';
         }
         .twoelve-aba:hover {
-            filter: brightness(1.12);
-            box-shadow: 3px 3px 0px rgba(0,0,0,0.4);
+            opacity: 1;
+            filter: brightness(1.08);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.12);
         }
         .twoelve-aba.twoelve-aba-ativa {
-            filter: brightness(1.25);
-            box-shadow: 4px 4px 0px #000000;
+            opacity: 1;
+            filter: brightness(1.1);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.15);
             z-index: 2;
             transform: none; /* fica inteira ao abrir */
             justify-content: center;
@@ -193,13 +196,13 @@
         .twoelve-aba.twoelve-aba-ativa .twoelve-aba-seta::before {
             content: '>';
         }
-        /* cada aba com uma cor diferente */
-        .twoelve-aba[data-action="utils"]      { background: #2563eb; }
-        .twoelve-aba[data-action="mensagens"]  { background: #16a34a; }
-        .twoelve-aba[data-action="suporte"]    { background: #f97316; }
-        .twoelve-aba[data-action="visita"]     { background: #dc2626; }
-        .twoelve-aba[data-action="encaminhar"] { background: #7c3aed; }
-        .twoelve-aba[data-action="config"]     { background: #64748b; }
+        /* cada aba com um tom suave diferente */
+        .twoelve-aba[data-action="utils"]      { background: #5b8dd4; }
+        .twoelve-aba[data-action="mensagens"]  { background: #5da584; }
+        .twoelve-aba[data-action="suporte"]    { background: #c08a52; }
+        .twoelve-aba[data-action="visita"]     { background: #b96a6a; }
+        .twoelve-aba[data-action="encaminhar"] { background: #8d77b3; }
+        .twoelve-aba[data-action="config"]     { background: #7e8a96; }
         /* com a janela aberta, só a aba clicada fica visível (outras somem)
            e o container arrasta para a esquerda até a borda da janela de 700px */
         body.twoelve-lateral.twoelve-painel-aberto .twoelve-aba {
