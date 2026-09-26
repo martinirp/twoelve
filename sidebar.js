@@ -209,7 +209,7 @@
             display: flex;
         }
         body.twoelve-lateral.twoelve-painel-aberto .twoelve-abas {
-            right: calc(var(--twoelve-aba-aberta-largura, 700px) + 12px); /* borda esquerda da janela + folga */
+            right: calc(400px + 12px); /* borda esquerda da janela fixa de 400px + folga */
         }
         body.twoelve-lateral .twoelve-pin {
             display: none;
@@ -352,13 +352,6 @@
                 document.documentElement.style.setProperty('--twoelve-aba-largura', largura + 'px');
             } else {
                 document.documentElement.style.removeProperty('--twoelve-aba-largura');
-            }
-            // largura da aba aberta (janela que abre ao clicar na alça)
-            const larguraAberta = parseInt(config.larguraAbaAberta, 10);
-            if (larguraAberta && larguraAberta >= 500 && larguraAberta <= 1200) {
-                document.documentElement.style.setProperty('--twoelve-aba-aberta-largura', larguraAberta + 'px');
-            } else {
-                document.documentElement.style.removeProperty('--twoelve-aba-aberta-largura');
             }
         } catch (e) {}
     }

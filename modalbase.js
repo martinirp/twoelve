@@ -260,15 +260,14 @@
                 to   { transform: scale(1); opacity: 1; }
             }
 
-            /* ===== MODO LATERAL: modais viram painéis com bordinha na cor da aba,
-                   largura configurável (default 700px) ===== */
+            /* ===== MODO LATERAL: modais viram painéis de 400px com bordinha na cor da aba ===== */
             body.twoelve-lateral .twoelve-modal-container {
                 top: 0;
                 right: 0;
                 bottom: 0;
                 left: auto;
                 transform: none;
-                width: var(--twoelve-aba-aberta-largura, 700px);
+                width: 400px;
                 min-width: 280px;
                 max-width: calc(100vw - 88px);
                 min-height: 100vh;
@@ -392,9 +391,20 @@
             this.container.appendChild(body);
             document.body.appendChild(this.container);
 
-            // No modo lateral, ao abrir a janela as outras abas somem
+            // No modo lateral, ao abrir a janela as outras abas somem;
+            // clicar em espaço vazio (que não é um botão/campo) retrai a janela
             if (lateral) {
                 document.body.classList.add('twoelve-painel-aberto');
+                this.container.addEventListener('click', (e) => {
+                    const alvo = e.target;
+                    if (!(alvo instanceof Element)) return;
+                    const interativo = alvo.closest(
+                        'button, a[href], input, select, textarea, [contenteditable], [data-action], [role="button"], .twoelve-button'
+                    );
+                    if (!interativo) {
+                        this.fechar();
+                    }
+                });
             }
 
             // Resize handle (lado direito) — desativado no modo lateral
