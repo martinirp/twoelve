@@ -263,13 +263,13 @@
             /* ===== MODO LATERAL: modais viram painéis fixos encostados na lateral ===== */
             body.twoelve-lateral .twoelve-modal-container {
                 top: 0;
-                right: 172px;
+                right: 96px;
                 bottom: 0;
                 left: auto;
                 transform: none;
                 width: 340px;
                 min-width: 280px;
-                max-width: calc(100vw - 180px);
+                max-width: calc(100vw - 108px);
                 min-height: 100vh;
                 max-height: 100vh;
                 height: auto;

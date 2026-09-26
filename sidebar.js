@@ -131,53 +131,71 @@
             width: 200px;
         }
 
-        /* ===== MODO LATERAL: abinhas na lateral (uma por botão) ===== */
+        /* ===== MODO LATERAL: abas coloridas na lateral (independentes da toolbar) ===== */
+        /* no modo lateral a toolbar some totalmente, entra a fileira de abas */
         body.twoelve-lateral .twoelve-wrapper {
+            display: none !important;
+        }
+        .twoelve-abas {
+            position: fixed;
             top: 50%;
-            left: auto;
             right: 0;
             transform: translateY(-50%);
-            align-items: flex-end;
-        }
-        body.twoelve-lateral .twoelve-handle {
+            z-index: 999999;
             display: none;
-        }
-        body.twoelve-lateral .twoelve-wrapper:hover .twoelve-sidebar,
-        body.twoelve-lateral .twoelve-sidebar {
             flex-direction: column;
-            max-height: none;
-            overflow: visible;
-            opacity: 1;
-            pointer-events: auto;
-            padding: 12px 4px 12px 8px;
-            background: transparent;
-            border: 0;
-            box-shadow: none;
-            border-radius: 0;
-            transition: none;
+            gap: 10px;
+            padding: 14px 0;
         }
-        body.twoelve-lateral .twoelve-btn,
-        body.twoelve-lateral .twoelve-config {
-            width: 150px;
-            padding: 9px 12px;
-            text-align: left;
-            white-space: nowrap;
-            overflow: hidden;
-            margin-bottom: 8px;
-            transform: translateX(calc(100% - 40px)); /* abinha encolhida: só uma parte fica visível */
-            transition: transform 0.18s ease;
+        body.twoelve-lateral .twoelve-abas {
+            display: flex;
         }
-        body.twoelve-lateral .twoelve-btn:hover,
-        body.twoelve-lateral .twoelve-config:hover {
-            transform: translateX(calc(100% - 40px)); /* mantém encolhida; o clique direto abre o modal */
-            box-shadow: 5px 5px 0px #000000;
-        }
-        body.twoelve-lateral .twoelve-btn.twoelve-aba-ativa,
-        body.twoelve-lateral .twoelve-config.twoelve-aba-ativa {
-            background: #000000;
+        .twoelve-aba {
+            position: relative;
+            width: 64px;
+            height: 74px;
+            border: 2px solid #000000;
+            border-right: 0;
+            border-radius: 10px 0 0 10px;
             color: #ffffff;
-            transform: translateX(calc(100% - 40px));
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            box-shadow: 3px 3px 0px rgba(0,0,0,0.35);
+            transition: width 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+            overflow: hidden;
+        }
+        .twoelve-aba .twoelve-aba-emoji {
+            font-size: 20px;
+            line-height: 1;
+        }
+        .twoelve-aba .twoelve-aba-rotulo {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        /* cada aba com uma cor diferente */
+        .twoelve-aba[data-action="utils"]      { background: #2563eb; }
+        .twoelve-aba[data-action="mensagens"]  { background: #16a34a; }
+        .twoelve-aba[data-action="suporte"]    { background: #f97316; }
+        .twoelve-aba[data-action="visita"]     { background: #dc2626; }
+        .twoelve-aba[data-action="encaminhar"] { background: #7c3aed; }
+        .twoelve-aba[data-action="config"]     { background: #64748b; }
+        .twoelve-aba:hover {
+            width: 86px;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.5);
+            filter: brightness(1.08);
+        }
+        .twoelve-aba.twoelve-aba-ativa {
+            width: 86px;
             box-shadow: 5px 5px 0px #000000;
+            filter: brightness(1.15);
+            z-index: 2;
         }
         body.twoelve-lateral .twoelve-pin {
             display: none;
@@ -186,6 +204,19 @@
 
     document.head.appendChild(style);
     document.body.appendChild(wrapper);
+
+    // --- ABAS LATERAIS (modo Lateral): fileira de abas coloridas, uma abaixo da outra ---
+    const abas = document.createElement('div');
+    abas.className = 'twoelve-abas';
+    abas.innerHTML = `
+        <button class="twoelve-aba" data-action="utils"><span class="twoelve-aba-emoji">🛠️</span><span class="twoelve-aba-rotulo">Utils</span></button>
+        <button class="twoelve-aba" data-action="mensagens"><span class="twoelve-aba-emoji">💬</span><span class="twoelve-aba-rotulo">Mensagens</span></button>
+        <button class="twoelve-aba" data-action="suporte"><span class="twoelve-aba-emoji">✅</span><span class="twoelve-aba-rotulo">Suporte</span></button>
+        <button class="twoelve-aba" data-action="visita"><span class="twoelve-aba-emoji">🚗</span><span class="twoelve-aba-rotulo">Visita</span></button>
+        <button class="twoelve-aba" data-action="encaminhar"><span class="twoelve-aba-emoji">📤</span><span class="twoelve-aba-rotulo">Encaminhar</span></button>
+        <button class="twoelve-aba" data-action="config"><span class="twoelve-aba-emoji">⚙️</span><span class="twoelve-aba-rotulo">Config</span></button>
+    `;
+    document.body.appendChild(abas);
 
     // --- POSIÇÃO HORIZONTAL SALVA (arrastar pelo handle) ---
     chrome.storage.local.get(['twoelveToolbarState'], (res) => {
@@ -322,7 +353,7 @@
     let modalAbertoAcao = null;
 
     function marcarAbaAtiva(acao) {
-        document.querySelectorAll('.twoelve-wrapper [data-action]').forEach((b) => {
+        document.querySelectorAll('.twoelve-wrapper [data-action], .twoelve-abas [data-action]').forEach((b) => {
             b.classList.toggle('twoelve-aba-ativa', acao ? b.getAttribute('data-action') === acao : false);
         });
     }
@@ -432,6 +463,36 @@
             }
         });
     }
+
+    // ==============================================
+    // ABAS LATERAIS (modo Lateral): clicar em uma aba
+    // abre o painel ao lado com os botões do modal
+    // ==============================================
+    const acoesAbas = {
+        utils: () => window.abrirModalUtils,
+        mensagens: () => window.abrirModalMensagens,
+        suporte: () => window.abrirModalSuporte,
+        visita: () => window.abrirModalVisitas,
+        encaminhar: () => window.abrirModalEncaminhar
+    };
+    document.querySelectorAll('.twoelve-aba').forEach((aba) => {
+        aba.addEventListener('click', () => {
+            const acao = aba.getAttribute('data-action');
+            if (acao === 'config') {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    chrome.runtime.sendMessage({ action: 'twoelve-open-config' }, () => {});
+                }
+                return;
+            }
+            const abridor = acoesAbas[acao] ? acoesAbas[acao]() : null;
+            if (typeof abridor === 'function') {
+                gerenciarModal(() => abridor(), acao);
+            } else {
+                console.error('Função do modal não encontrada para a aba ' + acao);
+                alert('Módulo não carregado. Verifique o manifest.json.');
+            }
+        });
+    });
 
     aplicarConfigEmotes();
 
