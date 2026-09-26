@@ -103,10 +103,8 @@
   }
 
   function getSelecao() {
-    const usarDev = $('check-dev').checked;
-    return usarDev
-      ? { instalar: 'dev', referencia: 'main', selecao: 'dev' }
-      : { instalar: 'main', referencia: 'dev', selecao: 'use' };
+    const b = $('config-branch').value; // 'main' | 'dev'
+    return { instalar: b === 'dev' ? 'dev' : 'main', selecao: b === 'dev' ? 'dev' : 'main' };
   }
 
   async function salvarSelecao(selecao) {
@@ -117,19 +115,6 @@
         });
       }
     } catch (e) {}
-  }
-
-  // regra: somente um checkbox pode ficar marcado; "use" é o padrão
-  function garantirUnica(ativo) {
-    if (ativo === 'use') {
-      $('check-dev').checked = false;
-    } else {
-      $('check-use').checked = false;
-    }
-    if (!$('check-use').checked && !$('check-dev').checked) {
-      $('check-use').checked = true;
-    }
-    salvarSelecao($('check-use').checked ? 'use' : 'dev');
   }
 
   async function branchExiste(branch) {
@@ -176,64 +161,45 @@
   }
 
   async function aoAtualizar() {
-    const { instalar, referencia } = getSelecao();
-    setUpdateStatus('Validando branches no GitHub…');
+    const { instalar } = getSelecao();
+    setUpdateStatus('Validando a branch no GitHub…');
 
     const btn = $('btn-gerar-instalador');
     btn.disabled = true;
 
     const u = await branchExiste(instalar);
-    const d = await branchExiste(referencia);
-    if (u === null || d === null) {
+    if (u === null) {
       setUpdateStatus('Falha de rede ao acessar o GitHub.', 'erro');
       btn.disabled = false;
       return;
     }
-
-    let aviso = '';
     if (!u) {
       setUpdateStatus('Branch “' + instalar + '” não encontrada. Envie o código para o GitHub antes de atualizar.', 'erro');
       btn.disabled = false;
       return;
     }
-    if (!d) {
-      aviso = ' (branch “' + referencia + '” não encontrada — o instalador instalará apenas a “' + instalar + '”)';
-    }
 
     // gera e baixa o instalador
-    const bat = gerarInstalador(instalar, referencia);
+    const bat = gerarInstalador(instalar);
     baixarBlob(new Blob([bat], { type: 'text/plain;charset=utf-8' }), 'instalar-twoelve.cmd');
 
-    $('passos').hidden = false;
-    setUpdateStatus('✅ Instalador gerado e baixado! Siga os passos abaixo.' + aviso, u && d ? 'ok' : 'aviso');
+    setUpdateStatus('✅ Instalador gerado! Dê dois cliques no instalar-twoelve.cmd — ele baixa o ZIP direto na pasta da extensão e instala, depois abre o chrome://extensions.', 'ok');
     btn.disabled = false;
   }
 
-  async function baixarZip() {
-    const { instalar } = getSelecao();
-    setUpdateStatus('📦 Baixando ZIP da branch “' + instalar + '”…');
-    try {
-      const r = await fetch('https://codeload.github.com/' + REPO + '/zip/refs/heads/' + encodeURIComponent(instalar));
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const blob = await r.blob();
-      baixarBlob(blob, 'twoelve-' + instalar + '.zip');
-      setUpdateStatus('ZIP baixado. Extraia e substitua os arquivos da extensão, ou use o instalador.', 'ok');
-    } catch (e) {
-      setUpdateStatus('❌ Erro ao baixar: ' + e.message, 'erro');
-    }
-  }
-
   // ---------- gerador do instalador (.cmd) ----------
-  function gerarInstalador(use, dev) {
+  // Baixa o ZIP DIRETO NA PASTA da extensão (onde está o manifest.json),
+  // extrai ali mesmo e substitui os arquivos — sem depender de %TEMP%.
+  function gerarInstalador(use) {
     const TARGET = 'C:\\Users\\Lucas\\Desktop\\Extensao';
+    const ps = (cmd) => 'powershell -NoProfile -ExecutionPolicy Bypass -Command "' + cmd + '"';
     return [
       '@echo off',
       'setlocal EnableExtensions',
-      'title TwoElve - Instalador de Atualizacao',
+      'title TwoElve - Atualizacao automatica',
       '',
       'set "REPO=' + REPO + '"',
-      'set "USE_BRANCH=' + use + '"',
-      'set "DEV_BRANCH=' + dev + '"',
+      'set "BRANCH=' + use + '"',
       '',
       ':destino',
       'set "TARGET=' + TARGET + '"',
@@ -250,36 +216,38 @@
       'echo.',
       'echo ===========================================',
       'echo  TwoElve - Atualizacao automatica',
-      'echo  Repositorio : %REPO%',
-      'echo  Branch use  : %USE_BRANCH%   (instalada)',
-      'echo  Branch dev  : %DEV_BRANCH%   (referencia)',
-      'echo  Destino     : %TARGET%',
+      'echo  Repositorio : %REPO%  (branch %BRANCH%)',
+      'echo  Pasta       : %TARGET%',
       'echo ===========================================',
       'echo.',
       '',
-      'echo [1/3] Baixando codigo da branch %USE_BRANCH% ...',
-      'powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri https://codeload.github.com/%REPO%/zip/refs/heads/%USE_BRANCH% -OutFile $env:TEMP\\twoelve_%USE_BRANCH%.zip"',
+      'echo [1/3] Baixando o ZIP da extensao direto na pasta...',
+      ps("Invoke-WebRequest -Uri 'https://codeload.github.com/%REPO%/zip/refs/heads/%BRANCH%' -OutFile '%TARGET%\\twoelve-atual.zip'"),
       'if errorlevel 1 goto falha',
       '',
-      'echo [2/3] Extraindo ...',
-      'powershell -NoProfile -ExecutionPolicy Bypass -Command "if(Test-Path $env:TEMP\\twoelve_extraido){Remove-Item -Recurse -Force $env:TEMP\\twoelve_extraido}; Expand-Archive -Path $env:TEMP\\twoelve_%USE_BRANCH%.zip -DestinationPath $env:TEMP\\twoelve_extraido -Force"',
+      'echo [2/3] Extraindo na pasta da extensao...',
+      ps("if(Test-Path '%TARGET%\\twoelve_extraido'){Remove-Item -Recurse -Force '%TARGET%\\twoelve_extraido'}; Expand-Archive -Path '%TARGET%\\twoelve-atual.zip' -DestinationPath '%TARGET%\\twoelve_extraido' -Force"),
       'if errorlevel 1 goto falha',
       '',
-      'echo [3/3] Substituindo arquivos da extensao ...',
-      'for /d %%D in ("%TEMP%\\twoelve_extraido\\*") do xcopy "%%D\\*" "%TARGET%\\" /e /y /q >nul',
+      'echo [3/3] Substituindo os arquivos...',
+      'for /d %%D in ("%TARGET%\\twoelve_extraido\\*") do xcopy "%%D\\*" "%TARGET%\\" /e /y /q >nul',
       'if errorlevel 1 goto falha',
       '',
       'echo.',
-      'echo  Concluido! Recarregue a extensao em:',
+      'echo  Limpando temporarios...',
+      'if exist "%TARGET%\\twoelve-atual.zip" del /q "%TARGET%\\twoelve-atual.zip"',
+      'if exist "%TARGET%\\twoelve_extraido" rmdir /s /q "%TARGET%\\twoelve_extraido"',
+      '',
+      'echo.',
+      'echo  Concluido! Agora recarregue a extensao:',
       'echo    chrome://extensions',
       'start chrome chrome://extensions 2>nul',
-      'if exist "%TEMP%\\twoelve_%USE_BRANCH%.zip" del "%TEMP%\\twoelve_%USE_BRANCH%.zip"',
       'timeout /t 8 >nul',
       'exit /b 0',
       '',
       ':falha',
       'echo.',
-      'echo  Erro durante a atualizacao. Verifique o repositorio e as branches.',
+      'echo  Erro durante a atualizacao. Confira o repositorio e a branch.',
       'pause',
       'exit /b 1',
       ''
@@ -585,19 +553,16 @@
     configurarEventos();
     configurarDialogCor();
 
-    // seleção de branch salva para o modal de atualização (default: use)
+    // branch salva para o modal de atualização (default: main)
     try {
       const res = await chrome.storage.local.get(['twoelveUpdateBranches']);
       const sel = res.twoelveUpdateBranches && res.twoelveUpdateBranches.selecionada;
-      $('check-use').checked = sel !== 'dev';
-      $('check-dev').checked = sel === 'dev';
+      $('config-branch').value = sel === 'dev' ? 'dev' : 'main';
     } catch (e) {}
 
-    $('check-use').addEventListener('change', () => garantirUnica('use'));
-    $('check-dev').addEventListener('change', () => garantirUnica('dev'));
+    $('config-branch').addEventListener('change', () => salvarSelecao($('config-branch').value));
     $('btn-verificar').addEventListener('click', verificarVersao);
     $('btn-gerar-instalador').addEventListener('click', aoAtualizar);
-    $('btn-baixar-zip').addEventListener('click', baixarZip);
   }
 
   if (document.readyState === 'loading') {

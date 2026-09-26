@@ -216,7 +216,7 @@
 
   <!-- ============ MODAL DE ATUALIZAÇÃO ============ -->
   <div class="modal fade" id="modal-atualizar" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content steel">
         <div class="modal-header">
           <h5 class="modal-title">🚀 Atualizar extensão</h5>
@@ -225,45 +225,21 @@
 
         <div class="modal-body">
           <p class="texto-fraco">
-            Baixa a versão mais recente da extensão.
+            Baixa a última versão e instala direto na pasta da extensão.
           </p>
 
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="opcao-branch">
-                <input type="checkbox" id="check-use" checked />
-                <span class="opcao-box">
-                  <span class="opcao-check">✔</span>
-                  <span class="opcao-nome">Use <small>(main)</small></span>
-                  <span class="opcao-desc">Versão estável — instalada por padrão</span>
-                </span>
-              </label>
-            </div>
-            <div class="col-md-6">
-              <label class="opcao-branch">
-                <input type="checkbox" id="check-dev" />
-                <span class="opcao-box">
-                  <span class="opcao-check">✔</span>
-                  <span class="opcao-nome">Dev <small>(desenvolvimento)</small></span>
-                  <span class="opcao-desc">Branch de desenvolvimento</span>
-                </span>
-              </label>
-            </div>
-          </div>
+          <label class="form-label" for="config-branch">Branch</label>
+          <select id="config-branch" class="form-select">
+            <option value="main">Use — versão estável (padrão)</option>
+            <option value="dev">Dev — desenvolvimento</option>
+          </select>
 
           <div class="d-flex gap-2 flex-wrap mt-3">
             <button id="btn-verificar" class="btn btn-steel-outline">🔍 Verificar versão</button>
-            <button id="btn-gerar-instalador" class="btn btn-update">🔄 ATUALIZAR</button>
-            <button id="btn-baixar-zip" class="btn btn-import">📦 Baixar ZIP</button>
+            <button id="btn-gerar-instalador" class="btn btn-update">⬇️ Atualizar extensão</button>
           </div>
 
           <div id="update-status" class="status mt-3" hidden></div>
-
-          <ol id="passos" class="passos mt-3" hidden>
-            <li>Execute o arquivo <strong>instalar-twoelve.cmd</strong> que foi baixado.</li>
-            <li>Ele baixa e extrai o código da branch selecionada e substitui a pasta da extensão.</li>
-            <li>Na página <strong>chrome://extensions</strong> (aberta automaticamente), clique em <strong>Recarregar</strong> na extensão TwoElve.</li>
-          </ol>
         </div>
 
         <div class="modal-footer">
