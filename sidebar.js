@@ -130,6 +130,39 @@
         .twoelve-wrapper.twoelve-pinned .twoelve-handle {
             width: 200px;
         }
+
+        /* ===== MODO LATERAL: abinhas na lateral (uma por botão) ===== */
+        body.twoelve-lateral .twoelve-wrapper {
+            top: 50%;
+            left: auto;
+            right: 0;
+            transform: translateY(-50%);
+            align-items: flex-end;
+        }
+        body.twoelve-lateral .twoelve-handle {
+            display: none;
+        }
+        body.twoelve-lateral .twoelve-wrapper:hover .twoelve-sidebar,
+        body.twoelve-lateral .twoelve-sidebar {
+            flex-direction: column;
+            max-height: none;
+            overflow: visible;
+            opacity: 1;
+            pointer-events: auto;
+            padding: 10px;
+            border-radius: 6px 0 0 6px;
+            box-shadow: -4px 4px 0px #000000;
+            transition: none;
+        }
+        body.twoelve-lateral .twoelve-btn,
+        body.twoelve-lateral .twoelve-config {
+            width: 140px;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        body.twoelve-lateral .twoelve-pin {
+            display: none;
+        }
     `;
 
     document.head.appendChild(style);
@@ -236,6 +269,32 @@
             }
         });
     }
+
+    // ==============================================
+    // LAYOUT DA TOOLBAR (Superior / Lateral)
+    // ==============================================
+    function aplicarLayoutToolbar(layout) {
+        document.body.classList.toggle('twoelve-lateral', layout === 'lateral');
+    }
+
+    async function aplicarConfigToolbarAtual() {
+        try {
+            const result = await chrome.storage.local.get(['twoelveConfig']);
+            const config = (result && result.twoelveConfig) || {};
+            aplicarLayoutToolbar(config.toolbarLayout);
+        } catch (e) {}
+    }
+
+    // reaplica na hora quando a Configurações mudar o layout
+    chrome.runtime && chrome.runtime.onMessage && chrome.runtime.onMessage.addListener((message) => {
+        try {
+            if (message && message.action === 'twoelve-config-changed') {
+                aplicarConfigToolbarAtual();
+            }
+        } catch (e) {}
+    });
+
+    aplicarConfigToolbarAtual();
 
     // ==============================================
     // GERENCIADOR DE MODAIS - TOGGLE CORRETO

@@ -24,7 +24,8 @@
     autoOverlay: true,
     temaPagina: 'claro',
     saudacaoMensagem: '',
-    saudacaoPrevia: false
+    saudacaoPrevia: false,
+    toolbarLayout: 'superior'
   };
 
   // saudação automática existe SOMENTE na branch dev (flag "twoelveSaudacao" no manifest)
@@ -373,6 +374,11 @@
     $('config-overlay').checked = c.autoOverlay !== false;
 
     aplicarTemaPagina(c.temaPagina || 'claro', false);
+
+    // layout da toolbar (Superior/Lateral)
+    const layoutRadio = document.querySelector('input[name="twoelve-toolbar-layout"][value="' + (c.toolbarLayout === 'lateral' ? 'lateral' : 'superior') + '"]');
+    if (layoutRadio) layoutRadio.checked = true;
+
     atualizarSwatches();
   }
 
@@ -551,6 +557,13 @@
     // tema da própria página (claro/escuro)
     document.querySelectorAll('#config-tema-pagina button').forEach((btn) => {
       btn.addEventListener('click', () => aplicarTemaPagina(btn.dataset.tema));
+    });
+
+    // layout da toolbar (Superior/Lateral — um desmarca o outro)
+    document.querySelectorAll('input[name="twoelve-toolbar-layout"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        if (radio.checked) salvarConfiguracoes({ toolbarLayout: radio.value });
+      });
     });
 
     // swatches de cor → abrem o diálogo centralizado
