@@ -149,16 +149,28 @@
             overflow: visible;
             opacity: 1;
             pointer-events: auto;
-            padding: 10px;
-            border-radius: 6px 0 0 6px;
-            box-shadow: -4px 4px 0px #000000;
+            padding: 12px 4px 12px 8px;
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            border-radius: 0;
             transition: none;
         }
         body.twoelve-lateral .twoelve-btn,
         body.twoelve-lateral .twoelve-config {
-            width: 140px;
+            width: 150px;
             padding: 8px 12px;
-            text-align: center;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            margin-bottom: 8px;
+            transform: translateX(calc(100% - 26px)); /* abinha encolhida: só uma parte fica visível */
+            transition: transform 0.18s ease;
+        }
+        body.twoelve-lateral .twoelve-btn:hover,
+        body.twoelve-lateral .twoelve-config:hover {
+            transform: translateX(calc(100% - 26px)); /* mantém encolhida; o clique direto abre o modal */
+            box-shadow: 5px 5px 0px #000000;
         }
         body.twoelve-lateral .twoelve-pin {
             display: none;
