@@ -14,13 +14,21 @@
   "content_scripts": [
     {
       "matches": [
-        "https://erp.elo.net.br/*"
+        "<all_urls>"
       ],
       "js": [
         "modalbase.js",
         "button.js",
         "config.js",
-        "sidebar.js",
+        "sidebar.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://erp.elo.net.br/*"
+      ],
+      "js": [
         "visit.js",
         "messages.js",
         "forward.js",
