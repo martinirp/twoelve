@@ -69,20 +69,56 @@
         '.dx-texteditor textarea',                          // DevExtreme
         'textarea:not([readonly]):not([disabled])'          // último recurso
     ];
-    function aguardarUmDos(selectores, timeout) {
+
+    // Elemento visível de verdade (outras extensões injetam DOM; só o que aparece
+    // na tela pode ser o campo/aba do ERP)
+    const ehVisivel = (el) => {
+        if (!el) return false;
+        try {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0;
+        } catch (e) {
+            return false;
+        }
+    };
+
+    // ─── ENCONTRAR CAMPO DE MENSAGEM (prioriza a área do chat do ERP) ─────────────
+    // 1) textarea DENTRO do container do botão "Enviar mensagem" (mesma área de chat).
+    // 2) seletores MUI/DevExtreme específicos do ERP, visíveis.
+    // Nunca devolve textarea invisível ou de outra extensão (chat flutuante etc.).
+    const encontrarCampoMensagem = () => {
+        const botaoEnviar = encontrarBotaoEnviar();
+        if (botaoEnviar) {
+            let no = botaoEnviar.botao;
+            for (let i = 0; no && i < 6; i++) {
+                no = no.parentElement;
+                if (!no) break;
+                for (const sel of SELETORES_TEXTAREA) {
+                    for (const c of Array.from(no.querySelectorAll(sel))) {
+                        if (ehVisivel(c) && !c.readOnly && !c.disabled) return c;
+                    }
+                }
+            }
+        }
+        for (const sel of SELETORES_TEXTAREA) {
+            const el = document.querySelector(sel);
+            if (el && ehVisivel(el) && !el.readOnly && !el.disabled) return el;
+        }
+        return null;
+    };
+
+    function aguardarCampoMensagem(timeout) {
         return new Promise((resolve) => {
             const limite = timeout || 6000;
             const inicio = Date.now();
             const checar = () => {
-                for (const sel of selectores) {
-                    const el = document.querySelector(sel);
-                    if (el) {
-                        console.log(`[TwoElve] ✅ Campo encontrado via "${sel}"`);
-                        return resolve(el);
-                    }
+                const el = encontrarCampoMensagem();
+                if (el) {
+                    console.log("[TwoElve] ✅ Campo de mensagem encontrado:", el);
+                    return resolve(el);
                 }
                 if (Date.now() - inicio >= limite) {
-                    console.warn(`[TwoElve] ⏱️ Timeout aguardando campo (${selectores.join(', ')})`);
+                    console.warn("[TwoElve] ⏱️ Timeout aguardando campo de mensagem");
                     return resolve(null);
                 }
                 setTimeout(checar, 150);
@@ -230,9 +266,8 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
                 if (clicado) {
                     // confere se a mensagem saiu do campo (indica envio de fato)
                     setTimeout(() => {
-                        const restou = Array.from(
-                            document.querySelectorAll(SELETORES_TEXTAREA.join(','))
-                        ).some((el) => (el.value || '').trim());
+                        const campoAtual = encontrarCampoMensagem();
+                        const restou = campoAtual && (campoAtual.value || '').trim();
                         if (restou) {
                             console.warn("[TwoElve] ⚠️ Clique no enviar executado, mas ainda há texto no campo — confira se a mensagem saiu.");
                         } else {
@@ -325,7 +360,7 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
 
         const controles = window.TwoElveControle || {};
 
-        const textarea = await aguardarUmDos(SELETORES_TEXTAREA, 7000);
+        const textarea = await aguardarCampoMensagem(7000);
 
         if (!textarea) {
             console.log("[TwoElve] ❌ Campo de mensagem não encontrado após espera");
@@ -493,7 +528,7 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
                 return;
             }
 
-            const abasAtuais = document.querySelectorAll('[role="tab"]');
+            const abasAtuais = Array.from(document.querySelectorAll('[role="tab"]')).filter(ehVisivel);
             if (abasAtuais.length === 0) {
                 jaProcessouNovaAba = false;
                 return;
@@ -560,7 +595,7 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         console.log("[TwoElve] ⏳ Aguardando página estabilizar (46s)...");
 
         setTimeout(() => {
-            const abasAtuais = document.querySelectorAll('[role="tab"]');
+            const abasAtuais = Array.from(document.querySelectorAll('[role="tab"]')).filter(ehVisivel);
             abasAtuais.forEach(aba => abasAnteriores.add(getAbaId(aba)));
             console.log(`[TwoElve] 📊 Snapshot: ${abasAnteriores.size} aba(s) existente(s) registrada(s).`);
 
