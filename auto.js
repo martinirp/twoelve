@@ -3,6 +3,11 @@
 //   [bug#2] Reset do jaProcessouNovaAba movido para fora do if/else — garante reset em atendimentos encaminhados
 //   [bug#3] jaProcessouNovaAba setado imediatamente na entrada da função — elimina race condition em async
 //   [bug#5] Fila de abas pendentes + marcação com data-twoelve-processada — garante processamento progressivo
+//   [v6.1.21] Identificação por NÓ da aba (entra na hora, sem esperar mensagem);
+//             baseline curto pós-refresh (abas já abertas são avaliadas de novo);
+//             saudação só depois de OBSERVAR O CHAT (.omni-chat-header + [data-message-id]):
+//             se a saudação já estiver na conversa OU já houver atendente humano
+//             (encaminhada/em andamento) → não envia.
 (function() {
     console.log("[TwoElve] 🚀 Iniciando auto.js...");
 
@@ -11,11 +16,12 @@
         try { return !!chrome.runtime.getManifest().twoelveSaudacao; } catch (e) { return false; }
     };
 
-    let abasAnteriores = new Set();
     let jaProcessouNovaAba = false;
     let observadorAtivo = true;
     const filaDeAbas = []; // [bug#5] fila para múltiplas abas simultâneas
     let contadorAba = 0;   // numeração das abas de atendimento (badge + atributo)
+    const abasConhecidas = new WeakSet(); // [v6.1.21] abas já vistas (por elemento do DOM)
+    const pendentes = new Map();          // [v6.1.21] abas aguardando marcadores de atendimento
 
     // Conjunto de atendimentos JÁ processados nesta sessão (por protocolo|cliente ou
     // texto da aba). Evita numerar 2x e reenviar saudação quando o ERP recria a aba
@@ -351,6 +357,78 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         }
     };
 
+    // ─── OBSERVAR O CHAT (saudação já enviada? / já atendido por humano?) ────────
+    // Lê a conversa do Omni (.omni-chat-header + mensagens [data-message-id]) para
+    // decidir se a saudação PODE ser enviada. Evita enviar 2x e evita saudação em
+    // conversa encaminhada/em andamento (atendente humano já escreveu antes).
+    const TERMOS_SAUDACAO = ['bom dia', 'boa tarde', 'boa noite'];
+    const COR_ATENDENTE = 'rgb(98,100,108)';  // cor do nome no lado atendente/bot
+    const COR_CLIENTE = 'rgb(238,238,238)';   // cor do nome no lado do cliente
+    const normalizarCor = (v) => String(v || '').replace(/\s+/g, '');
+
+    const encontrarChatAtual = () => {
+        const campo = Array.from(document.querySelectorAll('textarea')).find(t =>
+            /digite sua mensagem/i.test(t.placeholder || '') && ehVisivel(t));
+        if (!campo) return null;
+        let no = campo;
+        for (let i = 0; i < 12 && no; i++) {
+            no = no.parentElement;
+            if (no && no.querySelector('[data-message-id]') && no.querySelector('.omni-chat-header')) return no;
+        }
+        return null;
+    };
+
+    const lerMensagensDoChat = (chat) => {
+        if (!chat) return [];
+        return Array.from(chat.querySelectorAll('[data-message-id]')).map((m) => {
+            const autorEl = m.querySelector('p.MuiTypography-root[style*="font-weight: 600"]');
+            const nome = autorEl ? (autorEl.textContent || '').replace(/:$/, '').trim() : '';
+            const cor = autorEl ? normalizarCor(autorEl.style.color) : '';
+            const corpo = m.querySelector('.mention-content') || m.querySelector('.jss7939') || m;
+            return {
+                nome,
+                ehBot: /elo\s*bot/i.test(nome) || nome === '',
+                ehAtendente: cor === COR_ATENDENTE,
+                ehCliente: cor === COR_CLIENTE,
+                texto: (corpo.textContent || '').replace(/\s+/g, ' ').trim(),
+                quando: (m.getAttribute('title') || '').trim()
+            };
+        });
+    };
+
+    const saudacaoJaEnviada = (msgs) =>
+        msgs.some(m => TERMOS_SAUDACAO.some(s => (m.texto || '').toLowerCase().includes(s)));
+
+    const conversaJaAtendida = (msgs) =>
+        msgs.some(m => m.ehAtendente && !m.ehBot);
+
+    // Verificação completa antes de saudar: aguarda o chat abrir e só libera se a
+    // conversa ainda não foi atendida por humano e a saudação ainda não está lá.
+    const verificarChatAntesDeSaudar = async (timeout) => {
+        const limite = timeout || 7000;
+        const inicio = Date.now();
+        let chat = encontrarChatAtual();
+        while (!chat && Date.now() - inicio < limite) {
+            await new Promise(r => setTimeout(r, 300));
+            chat = encontrarChatAtual();
+        }
+        if (!chat) {
+            console.warn("[TwoElve] ⚠️ Chat não encontrado — saudação NÃO enviada (só envia com conversa aberta).");
+            return { ok: false, motivo: 'chat não encontrado' };
+        }
+        const msgs = lerMensagensDoChat(chat);
+        if (saudacaoJaEnviada(msgs)) {
+            console.log("[TwoElve] ✅ Saudação JÁ está na conversa — não vou enviar de novo.");
+            return { ok: false, motivo: 'saudação já enviada' };
+        }
+        if (conversaJaAtendida(msgs)) {
+            console.log("[TwoElve] ⏭️ Conversa já foi atendida por atendente humano (encaminhada/em andamento) — sem saudação.");
+            return { ok: false, motivo: 'conversa já atendida' };
+        }
+        console.log(`[TwoElve] 💬 Chat verificado: ${msgs.length} mensagem(ns), sem saudação e sem atendente humano — ok para saudar.`);
+        return { ok: true };
+    };
+
     // ─── PREENCHER MENSAGEM ───────────────────────────────────────────────────────
     const preencherMensagem = async () => {
         if (!saudacaoDisponivel()) {
@@ -392,32 +470,6 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
 
         await enviarMensagemSeHorarioComercial(textarea);
         return true;
-    };
-
-    // ─── ID ÚNICO DA ABA ──────────────────────────────────────────────────────────
-    // Identifica a aba por protocolo/cliente usando múltiplos seletores: as classes
-    // JSS do site (jss30..jss33) mudam entre versões, o que fazia o ID virar vazio
-    // ("|") para todas as abas — fazendo toda aba nova parecer já vista e ser ignorada.
-    const getAbaId = (aba) => {
-        try {
-            const protocolo = aba.querySelector(
-                '.MuiTypography-root.jss33, .MuiTypography-root.jss31'
-            );
-            const cliente = aba.querySelector('.jss32, .jss30');
-            const protocoloTexto = protocolo ? protocolo.textContent.trim() : "";
-            const clienteTexto   = cliente   ? cliente.textContent.trim()   : "";
-
-            if (protocoloTexto || clienteTexto) {
-                return `${protocoloTexto}|${clienteTexto}`;
-            }
-
-            // fallback: classes mudaram — usa o texto visível inteiro da aba como ID
-            // (sem Math.random: abas ainda vazias têm ID fixo e não geram "novas" fantasmas)
-            const texto = (aba.textContent || "").replace(/\s+/g, " ").trim();
-            return texto || "sem-texto";
-        } catch {
-            return "sem-texto";
-        }
     };
 
     // ─── INJETAR NUMERAÇÃO NA ABA ─────────────────────────────────────────────────
@@ -489,17 +541,25 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
 
         const tipo = verificarTipoAtendimento();
 
-        if (tipo === "normal") {
-            if (!saudacaoDisponivel()) {
-                console.log("[TwoElve] 🔕 Saudação não disponível nesta versão (somente na branch dev).");
-            } else if (window.TwoElveControle && window.TwoElveControle.autoMensagem === false) {
-                console.log("[TwoElve] 🔕 Saudação desativada pelo toggle.");
+        if (!saudacaoDisponivel()) {
+            console.log("[TwoElve] 🔕 Saudação não disponível nesta versão (somente na branch dev).");
+        } else if (window.TwoElveControle && window.TwoElveControle.autoMensagem === false) {
+            console.log("[TwoElve] 🔕 Saudação desativada pelo toggle.");
+        } else if (tipo === "encaminhado") {
+            console.log("[TwoElve] ⏭️ Atendimento encaminhado (1 campo) — saudação não enviada.");
+        } else if (tipo === "normal" || tipo === "desconhecido") {
+            // [v6.1.21] Observa o CHAT antes de saudar: não envia se a saudação já
+            // estiver na conversa ou se ela já foi atendida por outro atendente
+            // (também cobre a tela Omni, onde não há campos .ql-editor).
+            const verificado = await verificarChatAntesDeSaudar(7000);
+            if (!verificado.ok) {
+                console.log(`[TwoElve] 🚫 Saudação pulada: ${verificado.motivo}`);
             } else {
                 await preencherMensagem();
                 console.log("[TwoElve] 🎯 Saudação processada com sucesso!");
             }
         } else {
-            console.log("[TwoElve] ⏭️ Atendimento encaminhado — saudação não enviada.");
+            console.log("[TwoElve] ⚠️ Tipo de atendimento inesperado — sem saudação.");
         }
 
         // [bug#2] Reset sempre executa — independente do tipo de atendimento
@@ -514,6 +574,48 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
     };
 
     // ─── FLUXO PRINCIPAL ──────────────────────────────────────────────────────────
+    // Detecção por NÓ (elemento do DOM), não por texto: a aba é reconhecida assim
+    // que o elemento aparece, sem esperar protocolo/mensagem. Abas que ainda não
+    // têm marcadores de atendimento entram numa janela de retry (pendentes) e são
+    // descartadas se continuarem vazias (fantasmas do MUI / abas internas).
+    const avaliarNovaAba = (aba) => {
+        if (!aba || abasConhecidas.has(aba)) return;
+        abasConhecidas.add(aba);
+        if (!ehVisivel(aba)) return;
+        if (ehAbaDeAtendimento(aba)) {
+            const numero = marcarAbaComNumero(aba);
+            aba.setAttribute('data-twoelve-processada', 'true');
+            filaDeAbas.push(aba);
+            console.log(`[TwoElve] 🔢 Nova aba de atendimento identificada na hora (#${numero || '-'}).`);
+        } else {
+            // acabou de aparecer sem protocolo/cliente — dá uma janela para carregar
+            pendentes.set(aba, { tentativas: 0 });
+            agendarRetryDeAba(aba);
+        }
+    };
+
+    const agendarRetryDeAba = (aba) => {
+        const info = pendentes.get(aba);
+        if (!info || info.tentativas >= 25) { // ~20s sem virar atendimento → descarta (fantasma)
+            if (info) pendentes.delete(aba);
+            return;
+        }
+        info.tentativas += 1;
+        setTimeout(() => {
+            if (!document.body.contains(aba)) { pendentes.delete(aba); return; }
+            if (ehAbaDeAtendimento(aba)) {
+                pendentes.delete(aba);
+                const numero = marcarAbaComNumero(aba);
+                aba.setAttribute('data-twoelve-processada', 'true');
+                filaDeAbas.push(aba);
+                console.log(`[TwoElve] 🔢 Aba reconhecida assim que o conteúdo carregou (#${numero || '-'}).`);
+                verificarEProcessarNovasAbas();
+            } else {
+                agendarRetryDeAba(aba);
+            }
+        }, 800);
+    };
+
     const verificarEProcessarNovasAbas = async () => {
         if (!observadorAtivo || jaProcessouNovaAba) return;
 
@@ -534,43 +636,14 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
                 return;
             }
 
-            const idsAtuais = new Set();
-            abasAtuais.forEach(aba => idsAtuais.add(getAbaId(aba)));
+            abasAtuais.forEach(avaliarNovaAba);
 
-            // Detecta abas novas: não estavam no snapshot E não foram marcadas ainda
-            const novasAbas = [];
-            abasAtuais.forEach(aba => {
-                // ignora abas que não são atendimento (fantasmas vazias, abas de outros componentes)
-                if (!ehAbaDeAtendimento(aba)) return;
-                const id = getAbaId(aba);
-                const jaProcessada = aba.getAttribute('data-twoelve-processada') === 'true';
-                const chave = getChaveEstavel(aba);
-                // conversa já tratada nesta sessão → nunca reprocessar (evita saudação 2x)
-                if (chave && chavesProcessadas.has(chave)) return;
-                if (!abasAnteriores.has(id) && !jaProcessada) novasAbas.push(aba);
-            });
-
-            // Atualiza snapshot
-            abasAnteriores = idsAtuais;
-
-            if (novasAbas.length === 0) {
+            if (filaDeAbas.length > 0) {
+                const proximaAba = filaDeAbas.shift();
+                await processarAba(proximaAba);
+            } else {
                 jaProcessouNovaAba = false;
-                return;
             }
-
-            // [bug#5] Marca todas as novas abas imediatamente e empurra na fila
-            novasAbas.forEach(aba => {
-                marcarAbaComNumero(aba);
-                aba.setAttribute('data-twoelve-processada', 'true');
-                filaDeAbas.push(aba);
-            });
-
-            console.log(`[TwoElve] 📋 ${novasAbas.length} nova(s) aba(s) detectada(s) — adicionadas à fila.`);
-
-            // Processa a primeira da fila
-            const proximaAba = filaDeAbas.shift();
-            await processarAba(proximaAba);
-
         } catch (error) {
             console.error("[TwoElve] Erro ao verificar abas:", error);
             jaProcessouNovaAba = false;
@@ -583,8 +656,8 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
     });
 
     // ─── INICIAR MONITORAMENTO ────────────────────────────────────────────────────
-    // Snapshot e ativação do observer acontecem JUNTOS dentro do mesmo bloco —
-    // sem janela de risco entre os dois.
+    // Baseline CURTO + avaliação das abas já abertas: após F5 o número/saudação
+    // funcionam de novo (a saudação é protegida pelo check do chat no processarAba).
     const iniciarMonitoramento = () => {
         if (!document.body) {
             console.log("[TwoElve] ⏳ Aguardando DOM carregar...");
@@ -592,22 +665,24 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
             return;
         }
 
-        console.log("[TwoElve] ⏳ Aguardando página estabilizar (46s)...");
+        console.log("[TwoElve] ⏳ Aguardando estabilização rápida (4s)...");
 
         setTimeout(() => {
-            const abasAtuais = Array.from(document.querySelectorAll('[role="tab"]')).filter(ehVisivel);
-            abasAtuais.forEach(aba => abasAnteriores.add(getAbaId(aba)));
-            console.log(`[TwoElve] 📊 Snapshot: ${abasAnteriores.size} aba(s) existente(s) registrada(s).`);
+            const abasIniciais = Array.from(document.querySelectorAll('[role="tab"]')).filter(ehVisivel);
+            abasIniciais.forEach(avaliarNovaAba);
+            console.log(`[TwoElve] 📊 Baseline: ${abasIniciais.length} aba(s) existente(s) avaliada(s).`);
 
             observer.observe(document.body, { childList: true, subtree: true });
-            console.log("[TwoElve] 👀 Monitoramento ativo! Somente NOVAS abas serão processadas.");
+            console.log("[TwoElve] 👀 Monitoramento ativo! Novas abas = identificadas na hora.");
+
+            if (filaDeAbas.length > 0) verificarEProcessarNovasAbas();
 
             // Rede de segurança: varredura periódica — garante que nenhuma aba nova
             // passe despercebida mesmo se algum mutation for perdido pelo observer.
             setInterval(() => {
                 if (!jaProcessouNovaAba) verificarEProcessarNovasAbas();
-            }, 10000);
-        }, 46000);
+            }, 5000);
+        }, 4000);
     };
 
     // ─── OBSERVER DE OVERLAY ──────────────────────────────────────────────────────
@@ -627,12 +702,13 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         reset: () => {
             jaProcessouNovaAba = false;
             filaDeAbas.length = 0;
+            pendentes.clear();
             console.log("[TwoElve] 🔄 Sistema resetado manualmente! Fila limpa.");
         },
         status: () => {
             console.log("[TwoElve] 📊 Status:", {
                 processou: jaProcessouNovaAba,
-                abasMonitoradas: abasAnteriores.size,
+                abasAguardandoMarcadores: pendentes.size,
                 ativo: observadorAtivo,
                 fila: filaDeAbas.length,
                 abasNumeradas: contadorAba,
