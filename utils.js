@@ -5,6 +5,88 @@
 
 (function() {
     // ==============================================
+    // 0. DESBLOQUEAR COLA / CLIQUE DIREITO (todas as páginas)
+    // ==============================================
+    // Muitas páginas — principalmente as de ROTEADOR (Huawei/FiberHome e afins) —
+    // bloqueiam COLAR senha e o menu de botão direito. Esta seção desbloqueia isso
+    // nativamente, em qualquer site (a extensão roda em <all_urls>):
+    //   - paste/copy/cut/dragstart/selectstart: a página nunca mais consegue bloquear;
+    //   - contextmenu (botão direito): liberado em todo lugar, EXCETO dentro da UI da
+    //     própria extensão (.twoelve-*), onde o botão direito continua abrindo a
+    //     edição dos botões (recursos da extensão preservados);
+    //   - campos de texto ficam SEMPRE selecionáveis (copiar uma senha gigante).
+    // Por que funciona: o listener roda na fase de CAPTURA no nível mais alto (window),
+    // ANTES de qualquer handler da página — inclusive atributos onpaste/oncontextmenu
+    // e handlers de janela. Para garantir essa prioridade, este arquivo sobe em
+    // "document_start" no manifest (registra-se antes de qualquer script da página).
+    // Padrão: LIGADO. Pode desligar via Configuração/storage
+    // (desbloquearColagem / desbloquearCliqueDireito = false).
+    (function desbloquearInteracoes() {
+        const DENTRO_DA_UI = '.twoelve-modal-container, .twoelve-wrapper, .twoelve-abas';
+        const bloquear = (e) => {
+            // impede QUALQUER handler da página (captura/alvo/bolha e atributos on*)
+            // de ver o evento — o comportamento padrão (colar/abrir menu) segue normal
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+        };
+        const ehDaUi = (e) => {
+            const alvo = e.target;
+            if (!alvo || !alvo.closest) return false;
+            try { return !!alvo.closest(DENTRO_DA_UI); } catch (err) { return false; }
+        };
+
+        let colagemAtiva = null;
+        let direitoAtivo = null;
+
+        const ligarColagem = () => {
+            if (colagemAtiva) return;
+            colagemAtiva = [];
+            ['paste', 'copy', 'cut', 'dragstart', 'selectstart'].forEach((ev) => {
+                const fn = (e) => bloquear(e);
+                colagemAtiva.push([ev, fn]);
+                window.addEventListener(ev, fn, true);
+            });
+        };
+        const desligarColagem = () => {
+            if (!colagemAtiva) return;
+            colagemAtiva.forEach(([ev, fn]) => window.removeEventListener(ev, fn, true));
+            colagemAtiva = null;
+        };
+        const ligarDireito = () => {
+            if (direitoAtivo) return;
+            direitoAtivo = (e) => { if (!ehDaUi(e)) bloquear(e); };
+            window.addEventListener('contextmenu', direitoAtivo, true);
+        };
+        const desligarDireito = () => {
+            if (!direitoAtivo) return;
+            window.removeEventListener('contextmenu', direitoAtivo, true);
+            direitoAtivo = null;
+        };
+
+        // aplica IMEDIATAMENTE (padrão ON) — nenhuma janela para o site bloquear
+        ligarColagem();
+        ligarDireito();
+        try {
+            const style = document.createElement('style');
+            style.id = 'twoelve-unblock-styles';
+            style.textContent = 'input, textarea, [contenteditable="true"] { -webkit-user-select: text !important; user-select: text !important; }';
+            (document.head || document.documentElement).appendChild(style);
+        } catch (e) {}
+
+        // se o usuário desativou explicitamente na Configuração, ajusta após ler o storage
+        const aplicar = (res) => {
+            const colagemOn = res.desbloquearColagem !== false;
+            const direitoOn = res.desbloquearCliqueDireito !== false;
+            if (colagemOn) ligarColagem(); else desligarColagem();
+            if (direitoOn) ligarDireito(); else desligarDireito();
+            console.log(`[TwoElve] ✅ Desbloqueio ativo em todas as páginas — colar: ${colagemOn ? 'ON' : 'OFF'}, botão direito: ${direitoOn ? 'ON' : 'OFF'} (UI da extensão preservada).`);
+        };
+        const p = chrome.storage.local.get(['desbloquearColagem', 'desbloquearCliqueDireito']);
+        if (p && p.then) { p.then(aplicar, aplicar); }
+        else { chrome.storage.local.get(['desbloquearColagem', 'desbloquearCliqueDireito'], aplicar); }
+    })();
+
+    // ==============================================
     // 1. VARIÁVEIS
     // ==============================================
     let modalAtivo = null;
