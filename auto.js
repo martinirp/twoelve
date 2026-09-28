@@ -8,6 +8,9 @@
 //             saudação só depois de OBSERVAR O CHAT (.omni-chat-header + [data-message-id]):
 //             se a saudação já estiver na conversa OU já houver atendente humano
 //             (encaminhada/em andamento) → não envia.
+//   [v6.1.22] "Saudação já enviada" passou a considerar SÓ mensagens de ATENDENTE
+//             humano — "Boa tarde" dita pelo cliente (ou pelo bot) não bloqueia
+//             mais a saudação (regra: só envia se ninguém humano atendeu ainda).
 (function() {
     console.log("[TwoElve] 🚀 Iniciando auto.js...");
 
@@ -396,8 +399,14 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         });
     };
 
+    // Saudação já foi enviada por um ATENDENTE humano? Mensagens do cliente
+    // ("Boa tarde") NÃO contam — o cliente pode abrir a conversa cumprimentando,
+    // e o bot sempre saudará no início do fluxo. So bloqueia envio se um
+    // atendente real já deu a saudação (ou se a conversa já foi atendida — ver abaixo).
+    // [v6.1.22] antes contava também mensagens do cliente/bot como "saudação enviada".
     const saudacaoJaEnviada = (msgs) =>
-        msgs.some(m => TERMOS_SAUDACAO.some(s => (m.texto || '').toLowerCase().includes(s)));
+        msgs.some(m => m.ehAtendente && !m.ehBot &&
+            TERMOS_SAUDACAO.some(s => (m.texto || '').toLowerCase().includes(s)));
 
     const conversaJaAtendida = (msgs) =>
         msgs.some(m => m.ehAtendente && !m.ehBot);
