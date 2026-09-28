@@ -17,6 +17,33 @@
     const filaDeAbas = []; // [bug#5] fila para múltiplas abas simultâneas
     let contadorAba = 0;   // numeração das abas de atendimento (badge + atributo)
 
+    // Conjunto de atendimentos JÁ processados nesta sessão (por protocolo|cliente ou
+    // texto da aba). Evita numerar 2x e reenviar saudação quando o ERP recria a aba
+    // ou o título muda (ex.: cliente responde) — o ID antigo "sumia" e a aba
+    // parecia nova de novo.
+    const chavesProcessadas = new Set();
+
+    // Só considera aba de atendimento: tem protocolo/cliente (classes jss) OU
+    // texto contendo número (protocolo). Ignora abas fantasma vazias do MUI e
+    // abas internas de outros componentes (ex.: "Informações", "Histórico").
+    const ehAbaDeAtendimento = (aba) => {
+        if (!aba) return false;
+        if (aba.querySelector('.MuiTypography-root.jss33, .MuiTypography-root.jss31, .jss32, .jss30')) return true;
+        return /\d/.test(aba.textContent || '');
+    };
+
+    // Chave estável para rastrear o MESMO atendimento mesmo se o elemento for
+    // recriado pelo React: protocolo|cliente quando existir, senão o texto da aba.
+    const getChaveEstavel = (aba) => {
+        const protocolo = aba.querySelector('.MuiTypography-root.jss33, .MuiTypography-root.jss31');
+        const cliente   = aba.querySelector('.jss32, .jss30');
+        const p = protocolo ? protocolo.textContent.trim() : '';
+        const c = cliente   ? cliente.textContent.trim()   : '';
+        if (p) return 'p|' + p + '|' + c;
+        const texto = (aba.textContent || '').replace(/\s+/g, ' ').trim();
+        return texto ? 't|' + texto : null;
+    };
+
     // ─── AGUARDAR ELEMENTO NO DOM ────────────────────────────────────────────────
     function aguardarElemento(selector, timeout = 5000) {
         return new Promise((resolve) => {
@@ -350,10 +377,11 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
             }
 
             // fallback: classes mudaram — usa o texto visível inteiro da aba como ID
+            // (sem Math.random: abas ainda vazias têm ID fixo e não geram "novas" fantasmas)
             const texto = (aba.textContent || "").replace(/\s+/g, " ").trim();
-            return texto || Math.random().toString();
+            return texto || "sem-texto";
         } catch {
-            return Math.random().toString();
+            return "sem-texto";
         }
     };
 
@@ -361,12 +389,17 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
     // Injeta um badge visível com o número sequencial + atributo data-twoelve-numero.
     // Chamada apenas para abas NOVAS detectadas (evita marcar abas de navegação).
     const marcarAbaComNumero = (aba) => {
-        if (!aba) return null;
+        if (!aba || !ehAbaDeAtendimento(aba)) return null;
         const existente = aba.getAttribute('data-twoelve-numero');
         if (existente) return existente;
 
+        // mesma conversa já processada (aba recriada) → não conta nem numera de novo
+        const chave = getChaveEstavel(aba);
+        if (chave && chavesProcessadas.has(chave)) return null;
+
         contadorAba += 1;
         aba.setAttribute('data-twoelve-numero', String(contadorAba));
+        if (chave) chavesProcessadas.add(chave);
 
         const badge = document.createElement('span');
         badge.className = 'twoelve-numero-badge';
@@ -406,6 +439,11 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         console.log(`[TwoElve]    Cliente   : ${cliente   ? cliente.textContent.trim()   : "N/A"}`);
         console.log(`[TwoElve]    Na fila   : ${filaDeAbas.length} restante(s)`);
         console.log("[TwoElve] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        // registra a conversa como tratada ANTES de processar — se o protocolo
+        // carregar durante o fluxo, a chave nova já fica marcada (sem reenvio)
+        const chaveAtual = getChaveEstavel(novaAba);
+        if (chaveAtual) chavesProcessadas.add(chaveAtual);
 
         await clicarBotaoListagem();
         await selecionarAba(novaAba);
@@ -467,8 +505,13 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
             // Detecta abas novas: não estavam no snapshot E não foram marcadas ainda
             const novasAbas = [];
             abasAtuais.forEach(aba => {
+                // ignora abas que não são atendimento (fantasmas vazias, abas de outros componentes)
+                if (!ehAbaDeAtendimento(aba)) return;
                 const id = getAbaId(aba);
                 const jaProcessada = aba.getAttribute('data-twoelve-processada') === 'true';
+                const chave = getChaveEstavel(aba);
+                // conversa já tratada nesta sessão → nunca reprocessar (evita saudação 2x)
+                if (chave && chavesProcessadas.has(chave)) return;
                 if (!abasAnteriores.has(id) && !jaProcessada) novasAbas.push(aba);
             });
 
@@ -557,7 +600,8 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
                 abasMonitoradas: abasAnteriores.size,
                 ativo: observadorAtivo,
                 fila: filaDeAbas.length,
-                abasNumeradas: contadorAba
+                abasNumeradas: contadorAba,
+                conversasProcessadas: chavesProcessadas.size
             });
         }
     };
