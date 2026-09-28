@@ -11,6 +11,9 @@
 //   [v6.1.22] "Saudação já enviada" passou a considerar SÓ mensagens de ATENDENTE
 //             humano — "Boa tarde" dita pelo cliente (ou pelo bot) não bloqueia
 //             mais a saudação (regra: só envia se ninguém humano atendeu ainda).
+//   [v6.1.23] Fila de atendimentos acumulados mais rápida: espera entre abas
+//             5s → 3s (~10s por atendimento). O reset roda após o processarAba
+//             terminar, então não há sobreposição entre atendimentos.
 (function() {
     console.log("[TwoElve] 🚀 Iniciando auto.js...");
 
@@ -575,11 +578,15 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         // [bug#5] Após reset, processa próxima da fila se houver
         // Correção: rescan SEMPRE após o reset — abas que chegaram durante o
         // processamento (com o mutation "engolido" pela flag) são detectadas agora.
+        // [v6.1.23] Espera reduzida de 5s para 3s: fila de atendimentos acumulados
+        //           drena mais rápido (~10s por atendimento). O reset roda DEPOIS
+        //           do processarAba terminar (incluindo o envio de 2-3s), então
+        //           não há sobreposição entre um atendimento e o seguinte.
         setTimeout(() => {
             jaProcessouNovaAba = false;
             console.log("[TwoElve] 🔄 Sistema resetado — rescaneando abas...");
             verificarEProcessarNovasAbas();
-        }, 5000);
+        }, 3000);
     };
 
     // ─── FLUXO PRINCIPAL ──────────────────────────────────────────────────────────
