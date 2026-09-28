@@ -157,19 +157,21 @@
             position: relative;
             width: var(--twoelve-aba-largura, 76px);
             height: 76px;
-            border: 2px solid rgba(255,255,255,0.28);
+            min-width: 0; /* permite valores pequenos (1px) encolherem de verdade */
+            box-sizing: border-box;
+            border: min(2px, calc(var(--twoelve-aba-largura, 76px) / 20)) solid rgba(255,255,255,0.28);
             border-right: 0;
             border-radius: 10px;
             color: #ffffff;
             font-family: 'Inter', sans-serif;
-            font-size: 15px;
+            font-size: min(15px, calc(var(--twoelve-aba-largura, 76px) * 0.4)); /* seta encolhe junto com a alça */
             font-weight: 800;
             line-height: 1;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding: 0 0 0 9px;
+            padding: 0 0 0 min(9px, calc(var(--twoelve-aba-largura, 76px) / 2));
             box-shadow: 2px 2px 0px rgba(0,0,0,0.22);
             transition: filter 0.15s ease, box-shadow 0.15s ease;
             overflow: hidden;
@@ -348,7 +350,7 @@
             aplicarLayoutToolbar(config.toolbarLayout);
             // largura da alça (botãozinho da lateral — metade fica visível na borda)
             const largura = parseInt(config.larguraAba, 10);
-            if (largura && largura >= 40 && largura <= 240) {
+            if (largura && largura >= 1 && largura <= 240) {
                 document.documentElement.style.setProperty('--twoelve-aba-largura', largura + 'px');
             } else {
                 document.documentElement.style.removeProperty('--twoelve-aba-largura');
