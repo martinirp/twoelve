@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TwoElve v6.0",
-  "version": "6.0.22",
+  "version": "6.0.23",
   "description": "Automação para plataforma Elleven",
   "twoelveSaudacao": false,
   "permissions": [
@@ -14,13 +14,21 @@
   "content_scripts": [
     {
       "matches": [
-        "https://erp.elo.net.br/*"
+        "<all_urls>"
       ],
       "js": [
         "modalbase.js",
         "button.js",
         "config.js",
-        "sidebar.js",
+        "sidebar.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://erp.elo.net.br/*"
+      ],
+      "js": [
         "visit.js",
         "messages.js",
         "forward.js",
