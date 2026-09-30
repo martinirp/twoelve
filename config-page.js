@@ -729,7 +729,7 @@
   // ---------- gravação da tecla ----------
   function pararGravacao() {
     gravando = false;
-    document.removeEventListener('keydown', teclaGravada, true);
+    window.removeEventListener('keydown', teclaGravada, true);
     $('btn-gravar-tecla').textContent = '🎹 Gravar atalho';
     mostrarTecla();
   }
@@ -738,7 +738,7 @@
     gravando = true;
     $('btn-gravar-tecla').textContent = '✖ Cancelar gravação';
     mostrarTecla();
-    document.addEventListener('keydown', teclaGravada, true);
+    window.addEventListener('keydown', teclaGravada, true);
   }
 
   function teclaGravada(e) {
@@ -749,11 +749,33 @@
 
     if (e.key === 'Escape') { pararGravacao(); return; }
 
-    const t = window.TwoelveAtalhos.teclaDeEvento(e);
-    if (!t) return;   // tecla sozinha (sem Ctrl/Alt/Win) — ignora e continua gravando
+    const info = window.TwoelveAtalhos.descreverEvento(e);
+    const caixa = $('atalho-tecla-display');
+    const dica = $('atalho-tecla-texto');
 
-    teclaDoAtalho = t;
-    pararGravacao();
+    if (info.valido) {
+      if (window.TwoelveAtalhos.reservada(info.tecla)) {
+        mostrarStatusAtalho('⚠️ "' + info.texto + '" é um atalho do próprio Chrome e pode não funcionar. Se puder, escolha outra combinação.');
+      } else {
+        esconderStatusAtalho();
+      }
+      teclaDoAtalho = info.tecla;
+      pararGravacao();
+      return;
+    }
+
+    // ainda não é um atalho válido → mostra o que foi apertado e o que falta
+    caixa.textContent = info.texto;
+    if (info.motivo === 'sem_modificador') {
+      dica.textContent = 'Falta Ctrl, Alt ou Win — ou use uma tecla F1–F12 sozinha.';
+      mostrarStatusAtalho('❌ "' + info.texto + '" não vira atalho. Aperte junto com Ctrl, Alt ou Win.');
+    } else {
+      // já tem modificador: mostra o que falta e limpa o erro anterior
+      if (!$('atalho-status').hidden && $('atalho-status').textContent.indexOf('❌') === 0) {
+        esconderStatusAtalho();
+      }
+      dica.textContent = 'Agora aperte a tecla final (ex.: M). Esc cancela.';
+    }
   }
 
   // ---------- salvar ----------
