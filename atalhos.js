@@ -66,6 +66,17 @@
 
     const ROTULOS_MOD = { Ctrl: 'Ctrl', Alt: 'Alt', Shift: 'Shift', Meta: 'Win' };
 
+    // teclas que o Chrome/Firefox já usam — arrives nem sempre na página, então só avisamos
+    const RESERVADAS = [
+        'Ctrl+N', 'Ctrl+T', 'Ctrl+W', 'Ctrl+Q', 'Ctrl+Shift+N', 'Ctrl+Shift+T', 'Ctrl+Shift+W',
+        'Ctrl+Tab', 'Ctrl+Shift+Tab', 'Ctrl+L', 'Ctrl+D', 'Ctrl+J', 'Ctrl+H', 'Ctrl+P', 'Ctrl+F',
+        'Ctrl+R', 'Ctrl+Shift+R', 'Ctrl+Shift+B', 'Ctrl+Shift+C', 'Ctrl+Shift+I', 'Ctrl+Shift+J',
+        'Ctrl+Shift+Q', 'Ctrl+Shift+Delete', 'Alt+Left', 'Alt+Right', 'Alt+Home', 'Alt+End',
+        'Alt+F4', 'F5', 'F11', 'F12'
+    ];
+
+    const SO_MODIFICADORES = ['Control', 'Alt', 'Shift', 'Meta', 'AltGraph', 'CapsLock', 'NumLock', 'ScrollLock', 'Fn', 'OS', 'ContextMenu'];
+
     let estado = { ativo: true, lista: [] };
     let carregado = false;
 
@@ -75,7 +86,7 @@
     /** Converte um KeyboardEvent em atalho canônico ("Ctrl+Shift+M") ou null. */
     function teclaDeEvento(e) {
         if (!e) return null;
-        if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph', 'CapsLock', 'NumLock', 'ScrollLock', 'Fn', 'OS', 'ContextMenu'].includes(e.key)) return null;
+        if (SO_MODIFICADORES.includes(e.key)) return null;
 
         let tecla = null;
         const code = e.code || '';
@@ -102,6 +113,42 @@
     function formatarTecla(t) {
         if (!t) return '—';
         return String(t).split('+').map((p) => ROTULOS_MOD[p] || p).join(' + ');
+    }
+
+    /** Essa combinação é usada pelo navegador? (só aviso — não bloqueia) */
+    function reservada(t) {
+        return !!t && RESERVADAS.indexOf(t) !== -1;
+    }
+
+    /**
+     * Descreve o que está sendo pressionado, para dar feedback ao vivo na gravação.
+     * → { texto, tecla, valido, motivo }
+     *   motivo: '' | 'esperando' | 'sem_modificador'
+     */
+    function descreverEvento(e) {
+        const mods = [];
+        if (e.ctrlKey) mods.push('Ctrl');
+        if (e.altKey) mods.push('Alt');
+        if (e.shiftKey) mods.push('Shift');
+        if (e.metaKey) mods.push('Win');
+
+        const t = teclaDeEvento(e);
+        if (t) {
+            const p = t.split('+');
+            const tecla = p.pop();
+            return { texto: formatarTecla(mods.concat(tecla).join('+')), tecla: t, valido: true, motivo: '' };
+        }
+
+        if (!e.key || SO_MODIFICADORES.indexOf(e.key) !== -1) {
+            return {
+                texto: mods.length ? mods.join(' + ') + ' + …' : 'Aperte a combinação…',
+                tecla: null, valido: false, motivo: 'esperando'
+            };
+        }
+
+        const nome = NOMES_TECLA[e.key] || (e.key.length === 1 ? e.key.toUpperCase() : e.key);
+        const texto = mods.length ? formatarTecla(mods.concat(nome).join('+')) : nome;
+        return { texto, tecla: null, valido: false, motivo: 'sem_modificador' };
     }
 
     // ==============================================
@@ -348,7 +395,8 @@
     // ESCUTA DO TECLADO (só nas páginas, não na config)
     // ==============================================
     function iniciarEscuta() {
-        document.addEventListener('keydown', (e) => {
+        // window + capture = o primeiro lugar onde o evento aparece (a página não consegue "engolir")
+        window.addEventListener('keydown', (e) => {
             if (!estado.ativo) return;
             const t = teclaDeEvento(e);
             if (!t) return;
@@ -389,6 +437,8 @@
         rotuloAlvo,
         teclaDeEvento,
         formatarTecla,
+        descreverEvento,
+        reservada,
         executar,
         aviso
     };
