@@ -272,10 +272,90 @@
       versaoNova = m.version || '?';
     } catch (e) {}
 
-    setUpdateStatus('✅ Instalado! v' + versaoNova + ' gravada na pasta da extensão (' + okGrava + ' arquivo(s)). Agora recarregue a extensão em chrome://extensions.', 'ok');
-    btn.disabled = false;
+    // 5) a extensão se reinicia sozinha — sem chrome://extensions e sem F5
+    const recarregarAbas = !!($('config-atualizar-abas') && $('config-atualizar-abas').checked);
+    const reiniciaSozinho = !!(chrome && chrome.runtime && typeof chrome.runtime.reload === 'function');
 
-    try { chrome.tabs.create({ url: 'chrome://extensions' }); } catch (e) {}
+    try {
+      await chrome.storage.local.set({
+        // limpa o cache da checagem: senão a barra de "nova versão" volta a aparecer
+        twoelveUpdateInfo: null,
+        // a página recarrega logo depois do restart e usa isso para concluir
+        twoelveUpdatePending: { versao: versaoNova, abas: recarregarAbas, em: Date.now() }
+      });
+    } catch (e) {}
+
+    if (!reiniciaSozinho) {
+      setUpdateStatus('✅ v' + versaoNova + ' gravada na pasta (' + okGrava + ' arquivos). Este navegador não deixou a extensão se reiniciar sozinha: abra chrome://extensions e aperte F5 nela.', 'ok');
+      btn.disabled = false;
+      try { chrome.tabs.create({ url: 'chrome://extensions' }); } catch (e) {}
+      return;
+    }
+
+    setUpdateStatus('✅ v' + versaoNova + ' gravada na pasta (' + okGrava + ' arquivos). 🔄 Reiniciando a extensão sozinha — esta página recarrega em instantes. (Se demorar ou a tela ficar em branco, é só apertar F5 aqui.)', 'ok');
+    btn.disabled = true;
+    reiniciarExtensao();
+  }
+
+  // ---------- reinício automático da extensão ----------
+  const URL_ERP = 'https://erp.elo.net.br/*';
+
+  /** Reinicia a extensão e, quando ela volta, recarrega esta página. */
+  function reiniciarExtensao() {
+    try { chrome.runtime.reload(); } catch (e) {}
+
+    // o contexto desta página morre no restart; ficamos de olho até a extensão voltar
+    let vivos = 0;
+    let tentativas = 0;
+    const checar = () => {
+      tentativas++;
+      let vivo = false;
+      try { vivo = !!(chrome.runtime && chrome.runtime.id); } catch (e) { vivo = false; }
+      vivos = vivo ? vivos + 1 : 0;
+      if ((vivos >= 3 || tentativas >= 25) && tentativas >= 6) {
+        try { window.location.reload(); } catch (e) {}
+        return;
+      }
+      setTimeout(checar, 250);
+    };
+    setTimeout(checar, 300);
+  }
+
+  /**
+   * Roda quando a página carrega: se veio de uma atualização auto-reiniciada,
+   * avisa que deu certo e (opcionalmente) recarrega as abas do atendimento.
+   */
+  async function concluirAtualizacaoPendente() {
+    let pend = null;
+    try {
+      const res = await chrome.storage.local.get(['twoelveUpdatePending']);
+      pend = res && res.twoelveUpdatePending;
+    } catch (e) {}
+    if (!pend || !pend.versao) return;
+
+    try { await chrome.storage.local.remove('twoelveUpdatePending'); } catch (e) {}
+
+    let n = 0;
+    if (pend.abas) {
+      try {
+        const abas = await chrome.tabs.query({ url: URL_ERP });
+        (abas || []).forEach((t) => {
+          // o chrome já filtra, mas conferimos aqui para não recarregar aba nenhuma por engano
+          if (!t || !/^https:\/\/erp\.elo\.net\.br\//.test(t.url || '')) return;
+          try { chrome.tabs.reload(t.id); n++; } catch (e) {}
+        });
+      } catch (e) {}
+    }
+
+    const extra = pend.abas
+      ? ' · ' + n + ' aba(s) do atendimento recarregada(s)'
+      : ' · dê F5 nas abas do atendimento para usar a versão nova';
+    setStatus('✅ TwoElve atualizado para a v' + pend.versao + '!' + extra, 'ok');
+
+    try {
+      setUpdateStatus('✅ Concluído! Extensão recarregada na v' + pend.versao + '.' + extra, 'ok');
+      bootstrap.Modal.getOrCreateInstance($('modal-atualizar')).show();
+    } catch (e) {}
   }
 
   // ---------- leitor de ZIP (puro JS, sem bibliotecas) ----------
@@ -980,6 +1060,7 @@
     configurarDialogCor();
     configurarAtalhos();
     await renderAtalhos();
+    await concluirAtualizacaoPendente();
 
     // branch salva para o modal de atualização (default: main)
     try {
