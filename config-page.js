@@ -273,7 +273,6 @@
     } catch (e) {}
 
     // 5) a extensão se reinicia sozinha — sem chrome://extensions e sem F5
-    const recarregarAbas = !!($('config-atualizar-abas') && $('config-atualizar-abas').checked);
     const reiniciaSozinho = !!(chrome && chrome.runtime && typeof chrome.runtime.reload === 'function');
 
     try {
@@ -281,7 +280,7 @@
         // limpa o cache da checagem: senão a barra de "nova versão" volta a aparecer
         twoelveUpdateInfo: null,
         // a página recarrega logo depois do restart e usa isso para concluir
-        twoelveUpdatePending: { versao: versaoNova, abas: recarregarAbas, em: Date.now() }
+        twoelveUpdatePending: { versao: versaoNova, em: Date.now() }
       });
     } catch (e) {}
 
@@ -298,7 +297,6 @@
   }
 
   // ---------- reinício automático da extensão ----------
-  const URL_ERP = 'https://erp.elo.net.br/*';
 
   /** Reinicia a extensão e, quando ela volta, recarrega esta página. */
   function reiniciarExtensao() {
@@ -321,10 +319,7 @@
     setTimeout(checar, 300);
   }
 
-  /**
-   * Roda quando a página carrega: se veio de uma atualização auto-reiniciada,
-   * avisa que deu certo e (opcionalmente) recarrega as abas do atendimento.
-   */
+  /** Quando a página carrega depois de uma atualização: só avisa que deu certo. */
   async function concluirAtualizacaoPendente() {
     let pend = null;
     try {
@@ -335,25 +330,9 @@
 
     try { await chrome.storage.local.remove('twoelveUpdatePending'); } catch (e) {}
 
-    let n = 0;
-    if (pend.abas) {
-      try {
-        const abas = await chrome.tabs.query({ url: URL_ERP });
-        (abas || []).forEach((t) => {
-          // o chrome já filtra, mas conferimos aqui para não recarregar aba nenhuma por engano
-          if (!t || !/^https:\/\/erp\.elo\.net\.br\//.test(t.url || '')) return;
-          try { chrome.tabs.reload(t.id); n++; } catch (e) {}
-        });
-      } catch (e) {}
-    }
-
-    const extra = pend.abas
-      ? ' · ' + n + ' aba(s) do atendimento recarregada(s)'
-      : ' · dê F5 nas abas do atendimento para usar a versão nova';
-    setStatus('✅ TwoElve atualizado para a v' + pend.versao + '!' + extra, 'ok');
-
+    setStatus('✅ TwoElve atualizado para a v' + pend.versao + '!', 'ok');
     try {
-      setUpdateStatus('✅ Concluído! Extensão recarregada na v' + pend.versao + '.' + extra, 'ok');
+      setUpdateStatus('✅ Extensão recarregada na v' + pend.versao + '.', 'ok');
       bootstrap.Modal.getOrCreateInstance($('modal-atualizar')).show();
     } catch (e) {}
   }
