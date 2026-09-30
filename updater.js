@@ -25,10 +25,12 @@
             '#twoelve-upd-modal ol{margin:6px 0 16px 20px;padding:0}',
             '#twoelve-upd-modal li{margin:4px 0}',
             '#twoelve-upd-modal code{background:#eef2f7;border-radius:3px;padding:1px 5px;font-size:12px}',
-            '#twoelve-upd-modal .twoelve-upd-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}',
+            '#twoelve-upd-modal .twoelve-upd-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}',
             '#twoelve-upd-modal .twoelve-upd-actions button{font:700 13px/1 system-ui,sans-serif;border:0;border-radius:4px;padding:10px 16px;cursor:pointer}',
-            '#twoelve-upd-download{background:#0b4f9e;color:#fff}',
-            '#twoelve-upd-download:hover{background:#0d5cb8}',
+            '#twoelve-upd-config{background:#0b4f9e;color:#fff}',
+            '#twoelve-upd-config:hover{background:#0d5cb8}',
+            '#twoelve-upd-download{background:#e5e9ef;color:#1a2b49}',
+            '#twoelve-upd-download:hover{background:#d5dbe4}',
             '#twoelve-upd-done{background:#e5e9ef;color:#1a2b49}',
             '#twoelve-upd-done:hover{background:#d5dbe4}'
         ].join('\n');
@@ -43,7 +45,7 @@
         bar.id = 'twoelve-update-bar';
         bar.innerHTML =
             '<span>⚡ <b>Nova atualização do TwoElve disponível!</b> ' +
-            'Você está na v' + info.local + ' e a v' + info.novaVersao + ' já saiu (branch ' + info.branch + ').</span>' +
+            'v' + info.local + ' → v' + info.novaVersao + ' (branch ' + info.branch + ') — atualize em 1 clique, sem mexer no chrome://extensions.</span>' +
             '<button id="twoelve-upd-btn">ATUALIZAR</button>' +
             '<button id="twoelve-upd-close" title="Fechar">✕</button>';
 
@@ -76,19 +78,31 @@
         corpo.innerHTML =
             '<p>Você está na <b>v' + info.local + '</b> e a <b>v' + info.novaVersao + '</b> já está publicada no branch <b>' + info.branch + '</b>.</p>' +
             '<ol>' +
-            '<li><b>Baixe</b> o ZIP da nova versão (botão abaixo).</li>' +
-            '<li><b>Extraia</b> o conteúdo em uma pasta.</li>' +
-            '<li>Abra <code>chrome://extensions</code> e <b>remova</b> a versão antiga do TwoElve.</li>' +
-            '<li>Clique em <b>"Carregar sem compactação"</b> e escolha a pasta extraída.</li>' +
-            '<li>Pronto — a extensão já carrega na versão nova (dê um <b>F5</b> nas páginas abertas para a toolbar atualizar).</li>' +
+            '<li>Abra as <b>Configurações do TwoElve</b> (botão abaixo).</li>' +
+            '<li>Na aba <b>Atualizar</b>, confira a branch e clique em <b>⬇️ Atualizar agora</b>.</li>' +
+            '<li>Pronto — ela baixa, extrai na sua pasta e <b>reinicia sozinha</b>. Sem <code>chrome://extensions</code>, sem F5 na mão.</li>' +
             '</ol>' +
             '<div class="twoelve-upd-actions">' +
-            '<button id="twoelve-upd-download">📥 Baixar ZIP</button>' +
-            '<button id="twoelve-upd-done">Entendi</button>' +
+            '<button id="twoelve-upd-config">⚙️ Abrir Configurações</button>' +
+            '<button id="twoelve-upd-download">📥 ZIP manual</button>' +
+            '<button id="twoelve-upd-done">Agora não</button>' +
             '</div>';
 
         modal.setConteudoElemento(corpo);
 
+        const btnConfig = corpo.querySelector('#twoelve-upd-config');
+        if (btnConfig) {
+            btnConfig.addEventListener('click', () => {
+                try {
+                    chrome.runtime.sendMessage({ action: 'twoelve-open-config' }, () => {
+                        void chrome.runtime.lastError;
+                    });
+                } catch (e) {
+                    window.open(info.url, '_blank');
+                }
+                modal.fechar();
+            });
+        }
         const btnDownload = corpo.querySelector('#twoelve-upd-download');
         if (btnDownload) {
             btnDownload.addEventListener('click', () => {

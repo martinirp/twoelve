@@ -886,6 +886,13 @@
                                 <td><span class="badge badge-ok">✅ COMPLETO</span></td>
                             </tr>
                             <tr>
+                                <td><code>updater.js</code></td>
+                                <td>Barra de aviso de nova versão nas páginas. Ao clicar, abre um passo a passo que leva às Configurações — de lá a atualização é automática: baixa o ZIP do GitHub, extrai na pasta da extensão, chama <code>chrome.runtime.reload()</code> e a página se recarrega sozinha.</td>
+                                <td>—</td>
+                                <td><code>chrome.runtime.sendMessage</code></td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
                                 <td><code>visit.js</code></td>
                                 <td>CRUD de visitas técnicas no <code>chrome.storage</code>. Modal principal (lista), modal de execução, modal de adicionar, modal de editar.</td>
                                 <td><code>window.abrirModalVisitas</code></td>
@@ -1497,6 +1504,18 @@ fechar() {
                         <div class="schema-key">twoelveAtalhos</div>
                         <div class="schema-type">Object</div>
                         <div class="schema-desc">Atalhos de teclado: <code>{ ativo: Boolean, lista: [{ id, nome, alvo, tecla }] }</code>. O campo <code>alvo</code> é <code>"origem:id"</code> — <code>modulo:utils</code>, <code>suporte:&lt;id&gt;</code>, <code>mensagem:&lt;id&gt;</code>, <code>visita:&lt;id&gt;</code> ou <code>encaminhar:&lt;id&gt;</code>.</div>
+                    </div>
+
+                    <div class="schema-row">
+                        <div class="schema-key">twoelveUpdateInfo</div>
+                        <div class="schema-type">Object</div>
+                        <div class="schema-desc">Cache da checagem de versão (30 min) mantida pelo <code>background.js</code>. É zerado no fim da atualização para a barra não reaparecer.</div>
+                    </div>
+
+                    <div class="schema-row">
+                        <div class="schema-key">twoelveUpdatePending</div>
+                        <div class="schema-type">Object</div>
+                        <div class="schema-desc">Espaço de passagem da atualização automática: <code>{ versao, abas, em }</code>. Gravado antes de <code>chrome.runtime.reload()</code> e consumido por <code>concluirAtualizacaoPendente()</code> quando a <code>config.html</code> recarrega — é quem recarrega as abas do ERP e mostra o "✅ atualizado".</div>
                     </div>
                 </div>
             </div>
