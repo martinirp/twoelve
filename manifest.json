@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TwoElve v6.1",
-  "version": "6.1.25",
+  "version": "6.1.26",
   "description": "Automação para plataforma Elleven (DEV - com saudação automática)",
   "twoelveSaudacao": true,
   "twoelveBranch": "dev",
@@ -22,7 +22,8 @@
         "button.js",
         "config.js",
         "sidebar.js",
-        "updater.js"
+        "updater.js",
+        "atalhos.js"
       ],
       "run_at": "document_end"
     },

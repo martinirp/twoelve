@@ -879,6 +879,13 @@
                                 <td><span class="badge badge-ok">✅ COMPLETO</span></td>
                             </tr>
                             <tr>
+                                <td><code>atalhos.js</code></td>
+                                <td>Atalhos de teclado personalizáveis. CRUD em <code>chrome.storage.local</code> (chave <code>twoelveAtalhos</code>), escuta de <code>keydown</code> e execução do alvo (módulo da toolbar ou item salvo). Também roda dentro de <code>config.html</code>.</td>
+                                <td><code>window.TwoelveAtalhos</code></td>
+                                <td><code>chrome.storage</code>, DOM da toolbar</td>
+                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
+                            </tr>
+                            <tr>
                                 <td><code>visit.js</code></td>
                                 <td>CRUD de visitas técnicas no <code>chrome.storage</code>. Modal principal (lista), modal de execução, modal de adicionar, modal de editar.</td>
                                 <td><code>window.abrirModalVisitas</code></td>
@@ -963,7 +970,8 @@
         <span class="c-str">"forward.js"</span>,    <span class="c-cm">// 7º — lógica de encaminhamento</span>
         <span class="c-str">"utils.js"</span>,      <span class="c-cm">// 8º — auto-login, roteadores, TwoElveControle</span>
         <span class="c-str">"auto.js"</span>,       <span class="c-cm">// 9º — monitoramento de abas / saudação</span>
-        <span class="c-str">"content.js"</span>     <span class="c-cm">// 10º — suporte geral, overlay de nome</span>
+        <span class="c-str">"content.js"</span>,    <span class="c-cm">// 10º — suporte geral, overlay de nome</span>
+        <span class="c-str">"atalhos.js"</span>     <span class="c-cm">// 11º — atalhos de teclado (roda depois da toolbar)</span>
       ],
       <span class="c-prop">"run_at"</span>: <span class="c-str">"document_end"</span>
     },
@@ -990,7 +998,8 @@
                             <tr><td>8º</td><td><code>utils.js</code></td><td>Expõe <code>window.abrirModalUtils</code> e inicializa <code>window.TwoElveControle</code>.</td></tr>
                             <tr><td>9º</td><td><code>auto.js</code></td><td>Inicializa o monitor de abas e a saudação automática.</td></tr>
                             <tr><td>10º</td><td><code>content.js</code></td><td>Expõe <code>window.abrirModalSuporte</code> e inicializa overlay de cópia de nome.</td></tr>
-                            <tr><td>11º (Restrito)</td><td><code>call.js</code></td><td>Inicializa o auto-atendedor de chamadas (carregado apenas em <code>elonet.native-infinity.com.br</code>).</td></tr>
+                            <tr><td>11º</td><td><code>atalhos.js</code></td><td>Registra a escuta de <code>keydown</code> e clica nos botões da toolbar — por isso vem depois de <code>sidebar.js</code>.</td></tr>
+                            <tr><td>12º (Restrito)</td><td><code>call.js</code></td><td>Inicializa o auto-atendedor de chamadas (carregado apenas em <code>elonet.native-infinity.com.br</code>).</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1482,6 +1491,12 @@ fechar() {
                         <div class="schema-key">forwardButtons</div>
                         <div class="schema-type">Array</div>
                         <div class="schema-desc">Configuração de botões rápidos para encaminhamentos.</div>
+                    </div>
+
+                    <div class="schema-row">
+                        <div class="schema-key">twoelveAtalhos</div>
+                        <div class="schema-type">Object</div>
+                        <div class="schema-desc">Atalhos de teclado: <code>{ ativo: Boolean, lista: [{ id, nome, alvo, tecla }] }</code>. O campo <code>alvo</code> é <code>"origem:id"</code> — <code>modulo:utils</code>, <code>suporte:&lt;id&gt;</code>, <code>mensagem:&lt;id&gt;</code>, <code>visita:&lt;id&gt;</code> ou <code>encaminhar:&lt;id&gt;</code>.</div>
                     </div>
                 </div>
             </div>
