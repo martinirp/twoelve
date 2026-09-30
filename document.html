@@ -907,13 +907,6 @@
                                 <td><span class="badge badge-ok">✅ COMPLETO</span></td>
                             </tr>
                             <tr>
-                                <td><code>call.js</code></td>
-                                <td>Auto-atendedor de chamadas (atendimento automático de chamadas com ativação via clique direito no ícone do telefone).</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td><span class="badge badge-ok">✅ COMPLETO</span></td>
-                            </tr>
-                            <tr>
                                 <td><code>auto.js</code></td>
                                 <td>Automação de novas abas (saudação automática em horário comercial) e remoção do overlay cinza.</td>
                                 <td><code>window.TwoElve</code></td>
@@ -966,11 +959,6 @@
         <span class="c-str">"content.js"</span>     <span class="c-cm">// 10º — suporte geral, overlay de nome</span>
       ],
       <span class="c-prop">"run_at"</span>: <span class="c-str">"document_end"</span>
-    },
-    {
-      <span class="c-prop">"matches"</span>: [<span class="c-str">"https://elonet.native-infinity.com.br/*"</span>],
-      <span class="c-prop">"js"</span>: [<span class="c-str">"call.js"</span>],
-      <span class="c-prop">"run_at"</span>: <span class="c-str">"document_end"</span>
     }
   ]
 }</pre>
@@ -990,7 +978,6 @@
                             <tr><td>8º</td><td><code>utils.js</code></td><td>Expõe <code>window.abrirModalUtils</code> e inicializa <code>window.TwoElveControle</code>.</td></tr>
                             <tr><td>9º</td><td><code>auto.js</code></td><td>Inicializa o monitor de abas e a saudação automática.</td></tr>
                             <tr><td>10º</td><td><code>content.js</code></td><td>Expõe <code>window.abrirModalSuporte</code> e inicializa overlay de cópia de nome.</td></tr>
-                            <tr><td>11º (Restrito)</td><td><code>call.js</code></td><td>Inicializa o auto-atendedor de chamadas (carregado apenas em <code>elonet.native-infinity.com.br</code>).</td></tr>
                         </tbody>
                     </table>
                 </div>
