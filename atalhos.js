@@ -42,6 +42,28 @@
         { tipo: 'encaminhar', rotulo: '📤 Encaminhamentos', storage: 'forwardButtons', campo: 'text', acao: 'encaminhar', global: 'abrirModalEncaminhar' }
     ];
 
+    // ---------- itens padrão do programa (aparecem quando a lista salva está vazia) ----------
+    // espelha os getDefaults() de cada módulo: os ids são os mesmos, então o atalho
+    // continua funcionando mesmo depois de o usuário salvar a lista no storage.
+    const PADROES = {
+        encaminhar: [
+            { id: 'fwd-1', text: 'Enc. Suporte' },
+            { id: 'fwd-2', text: 'Enc. Faturamento' },
+            { id: 'fwd-3', text: 'Enc. Vendas' }
+        ]
+    };
+
+    /** Itens de uma fonte: os salvos, ou os padrão do programa se ainda não houver nenhum. */
+    async function itensDaFonte(fonte) {
+        let salvos = [];
+        try {
+            const r = await chrome.storage.local.get([fonte.storage]);
+            salvos = r[fonte.storage] || [];
+        } catch (e) {}
+        if (salvos.length) return { itens: salvos, doStorage: true };
+        return { itens: (PADROES[fonte.tipo] || []), doStorage: false };
+    }
+
     const NOMES_TECLA = {
         ' ': 'Espaço',
         Escape: 'Esc',
@@ -230,18 +252,16 @@
             itens: MODULOS.map((m) => ({ valor: 'modulo:' + m.acao, rotulo: m.rotulo }))
         }];
 
-        let dados = {};
-        try {
-            dados = await chrome.storage.local.get(FONTES.map((f) => f.storage));
-        } catch (e) {}
-
-        FONTES.forEach((f) => {
-            const itens = (dados[f.storage] || []).map((i) => ({
-                valor: f.tipo + ':' + i.id,
-                rotulo: '↳ ' + (i[f.campo] || '(sem nome)')
-            }));
-            grupos.push({ rotulo: f.rotulo, itens });
-        });
+        for (const f of FONTES) {
+            const { itens, doStorage } = await itensDaFonte(f);
+            grupos.push({
+                rotulo: f.rotulo,
+                itens: itens.map((i) => ({
+                    valor: f.tipo + ':' + i.id,
+                    rotulo: '↳ ' + (i[f.campo] || '(sem nome)') + (doStorage ? '' : ' (padrão)')
+                }))
+            });
+        }
 
         return grupos;
     }
@@ -258,9 +278,10 @@
         const fonte = FONTES.find((f) => f.tipo === partes[0]);
         if (!fonte) return '(alvo desconhecido)';
         try {
-            const r = await chrome.storage.local.get([fonte.storage]);
-            const item = (r[fonte.storage] || []).find((i) => String(i.id) === String(partes[1]));
-            return item ? fonte.rotulo + ' · ' + (item[fonte.campo] || '(sem nome)') : '(item removido)';
+            const { itens, doStorage } = await itensDaFonte(fonte);
+            const item = itens.find((i) => String(i.id) === String(partes[1]));
+            if (!item) return '(item removido)';
+            return fonte.rotulo + ' · ' + (item[fonte.campo] || '(sem nome)') + (doStorage ? '' : ' (padrão)');
         } catch (e) {
             return '(erro ao ler)';
         }
@@ -337,8 +358,8 @@
 
         let rotulo = '';
         try {
-            const r = await chrome.storage.local.get([fonte.storage]);
-            const item = (r[fonte.storage] || []).find((i) => String(i.id) === String(partes[1]));
+            const { itens } = await itensDaFonte(fonte);
+            const item = itens.find((i) => String(i.id) === String(partes[1]));
             if (item) rotulo = String(item[fonte.campo] || '').trim();
         } catch (e) {}
 
