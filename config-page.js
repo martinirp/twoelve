@@ -1055,6 +1055,10 @@
       try { return chrome.runtime.getManifest().version || '?'; } catch (e) { return '?'; }
     })();
 
+    if ($('update-local-versao')) {
+      $('update-local-versao').textContent = $('versao-local').textContent;
+    }
+
     await carregarConfiguracoes();
     configurarEventos();
     configurarDialogCor();
