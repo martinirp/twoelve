@@ -297,6 +297,78 @@ body.tema-escuro .card.steel { box-shadow: none; }
 .modal-content .btn-close { filter: none; } /* X visível no fundo claro */
 .modal-backdrop.show { opacity: .45; }
 
+/* ---------- atalhos de teclado ---------- */
+.atalhos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.atalhos-vazio {
+  color: var(--l-texto-fraco);
+  font-size: 13px;
+  padding: 14px;
+  border: 1px dashed var(--l-borda);
+  text-align: center;
+}
+.atalho-linha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--l-card-alt);
+  border: 1px solid var(--l-borda);
+  border-left: 3px solid var(--l-texto);
+}
+.atalho-tecla {
+  flex: 0 0 auto;
+  min-width: 92px;
+  text-align: center;
+  background: var(--l-texto);
+  color: var(--l-card);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+.atalho-info { flex: 1; min-width: 0; }
+.atalho-nome { font-size: 14px; font-weight: 600; color: var(--l-texto); }
+.atalho-alvo {
+  font-size: 12px;
+  color: var(--l-texto-fraco);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atalho-acoes { display: flex; gap: 6px; flex: 0 0 auto; }
+.atalho-acoes .btn { padding: 4px 10px; font-size: 13px; line-height: 1.2; }
+
+/* caixa de gravação da tecla (dentro do modal) */
+.tecla-linha { display: flex; gap: 10px; align-items: stretch; }
+.tecla-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 12px;
+  background: var(--l-campo);
+  border: 1px solid var(--l-borda);
+  color: var(--l-texto);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  word-break: break-all;
+}
+.tecla-display.gravando {
+  border-color: var(--l-azul);
+  color: var(--l-azul);
+  animation: pulsar 1s ease-in-out infinite;
+}
+@keyframes pulsar { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+
 /* ---------- rodapé ---------- */
 .rodape {
   position: fixed;

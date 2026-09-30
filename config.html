@@ -160,6 +160,31 @@
         </div>
       </div>
 
+      <!-- ================= ATALHOS ================= -->
+      <div class="col-12">
+        <div class="card steel h-100">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span>⌨️ Atalhos de teclado</span>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="config-atalhos-ativo" />
+              <label class="form-check-label" for="config-atalhos-ativo">Ativos</label>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="texto-fraco mb-3">
+              Cria atalhos para abrir um módulo da toolbar ou executar direto um botão que você já
+              salvou (Suporte, Mensagens Rápidas, Visitas, Encaminhamentos).
+            </p>
+
+            <div id="atalhos-lista" class="atalhos-lista"></div>
+
+            <div class="d-flex gap-2 mt-3">
+              <button id="btn-novo-atalho" class="btn btn-update">＋ Novo atalho</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ================= PREFERÊNCIAS ================= -->
       <div class="col-12 col-md-6">
         <div class="card steel h-100">
@@ -292,7 +317,45 @@
     </div>
   </div>
 
+  <!-- ============ MODAL DE ATALHO ============ -->
+  <div class="modal fade" id="modal-atalho" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content steel">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-atalho-titulo">⌨️ Novo atalho</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body">
+          <label class="form-label" for="atalho-nome">Nome do atalho</label>
+          <input type="text" class="form-control" id="atalho-nome" maxlength="40" placeholder="Ex.: Copiar senha" />
+
+          <label class="form-label mt-3" for="atalho-alvo">O que ele faz</label>
+          <select id="atalho-alvo" class="form-select"></select>
+
+          <label class="form-label mt-3">Tecla</label>
+          <div class="tecla-linha">
+            <div class="tecla-display" id="atalho-tecla-display">—</div>
+            <button type="button" class="btn btn-steel-outline" id="btn-gravar-tecla">🎹 Gravar atalho</button>
+          </div>
+          <div class="texto-fraco mt-2" id="atalho-dica">
+            Clique em <strong>Gravar atalho</strong> e pressione a combinação (ex.: Ctrl + Shift + M).
+          </div>
+          <div class="texto-fraco mt-1" id="atalho-tecla-texto">Nenhuma tecla gravada ainda.</div>
+
+          <div id="atalho-status" class="status mt-3" hidden></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-steel-outline" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-update" id="btn-salvar-atalho">💾 Salvar atalho</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="bootstrap.bundle.min.js"></script>
+  <script src="atalhos.js"></script>
   <script src="config-page.js"></script>
 </body>
 </html>

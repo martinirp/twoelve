@@ -77,7 +77,7 @@
     'customButtons', 'customVisits', 'whitePanelMessages',
     'forwardButtons', 'customTheme', 'controleAbas',
     'autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia',
-    'twoelveConfig'
+    'twoelveConfig', 'twoelveAtalhos'
   ];
 
   const $ = (id) => document.getElementById(id);
@@ -642,6 +642,248 @@
   }
 
   // ==============================================
+  // ATALHOS DE TECLADO (CRUD + gravação de tecla)
+  // ==============================================
+  let atalhoEmEdicao = null;   // atalho sendo editado (null = novo)
+  let teclaDoAtalho = '';      // "Ctrl+Shift+M"
+  let gravando = false;
+
+  function mostrarStatusAtalho(msg, tipo = 'erro') {
+    const el = $('atalho-status');
+    el.hidden = false;
+    el.textContent = msg;
+    el.className = 'status mt-3' + (tipo ? ' ' + tipo : '');
+  }
+
+  function esconderStatusAtalho() {
+    $('atalho-status').hidden = true;
+  }
+
+  function mostrarTecla() {
+    const caixa = $('atalho-tecla-display');
+    const txt = $('atalho-tecla-texto');
+    if (gravando) {
+      caixa.textContent = '🎹 Pressione a combinação…';
+      caixa.classList.add('gravando');
+      txt.textContent = 'Gravando… (Esc cancela)';
+    } else {
+      caixa.textContent = window.TwoelveAtalhos.formatarTecla(teclaDoAtalho);
+      caixa.classList.remove('gravando');
+      txt.textContent = teclaDoAtalho
+        ? 'Combinação: ' + teclaDoAtalho
+        : 'Nenhuma tecla gravada ainda.';
+    }
+  }
+
+  function montarSelectAlvo(selecionado) {
+    const sel = $('atalho-alvo');
+
+    return window.TwoelveAtalhos.listarAlvos().then((grupos) => {
+      // monta tudo num fragmento e só então troca o conteúdo do <select>
+      const frag = document.createDocumentFragment();
+      const valores = new Set();
+      frag.appendChild(new Option('— Escolha o que o atalho faz —', ''));
+
+      grupos.forEach((g) => {
+        if (!g.itens || !g.itens.length) return;
+        const og = document.createElement('optgroup');
+        og.label = g.rotulo;
+        g.itens.forEach((item) => {
+          const opt = new Option(item.rotulo, item.valor);
+          if (item.valor === selecionado) opt.selected = true;
+          og.appendChild(opt);
+          valores.add(item.valor);
+        });
+        frag.appendChild(og);
+      });
+
+      // alvo que não existe mais (item excluído) — mantém visível pra o usuário corrigir
+      if (selecionado && !valores.has(selecionado)) {
+        const og = document.createElement('optgroup');
+        og.label = '⚠️ Alvo indisponível';
+        og.appendChild(new Option('↳ ' + selecionado, selecionado));
+        frag.appendChild(og);
+      }
+
+      sel.innerHTML = '';
+      sel.appendChild(frag);
+    });
+  }
+
+  function abrirModalAtalho(atalho) {
+    atalhoEmEdicao = atalho || null;
+    teclaDoAtalho = atalho ? (atalho.tecla || '') : '';
+    gravando = false;
+
+    $('modal-atalho-titulo').textContent = atalho ? '✏️ Editar atalho' : '⌨️ Novo atalho';
+    $('atalho-nome').value = atalho ? (atalho.nome || '') : '';
+    esconderStatusAtalho();
+    mostrarTecla();
+
+    montarSelectAlvo(atalho ? atalho.alvo : '').then(() => {
+      bootstrap.Modal.getOrCreateInstance($('modal-atalho')).show();
+      if (!atalho) setTimeout(() => $('atalho-nome').focus(), 250);
+    });
+  }
+
+  // ---------- gravação da tecla ----------
+  function pararGravacao() {
+    gravando = false;
+    document.removeEventListener('keydown', teclaGravada, true);
+    $('btn-gravar-tecla').textContent = '🎹 Gravar atalho';
+    mostrarTecla();
+  }
+
+  function iniciarGravacao() {
+    gravando = true;
+    $('btn-gravar-tecla').textContent = '✖ Cancelar gravação';
+    mostrarTecla();
+    document.addEventListener('keydown', teclaGravada, true);
+  }
+
+  function teclaGravada(e) {
+    if (!gravando) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+    if (e.key === 'Escape') { pararGravacao(); return; }
+
+    const t = window.TwoelveAtalhos.teclaDeEvento(e);
+    if (!t) return;   // tecla sozinha (sem Ctrl/Alt/Win) — ignora e continua gravando
+
+    teclaDoAtalho = t;
+    pararGravacao();
+  }
+
+  // ---------- salvar ----------
+  async function salvarAtalho() {
+    const nome = $('atalho-nome').value.trim();
+    const alvo = $('atalho-alvo').value;
+    const idEmEdicao = atalhoEmEdicao ? atalhoEmEdicao.id : null;
+
+    if (!nome) { mostrarStatusAtalho('Dê um nome para o atalho.'); return; }
+    if (!alvo) { mostrarStatusAtalho('Escolha o que o atalho deve fazer.'); return; }
+    if (!teclaDoAtalho) { mostrarStatusAtalho('Grave uma tecla antes de salvar.'); return; }
+
+    const alvoLabel = (Array.from($('atalho-alvo').options).find((o) => o.value === alvo) || {}).textContent || alvo;
+    const conflito = await window.TwoelveAtalhos.conflito(teclaDoAtalho, idEmEdicao);
+    if (conflito) {
+      mostrarStatusAtalho('Essa tecla já é usada pelo atalho "' + (conflito.nome || conflito.tecla) + '". Escolha outra.');
+      return;
+    }
+
+    if (idEmEdicao) {
+      await window.TwoelveAtalhos.atualizar(idEmEdicao, { nome, alvo, tecla: teclaDoAtalho });
+      setStatus('✏️ Atalho "' + nome + '" atualizado.', 'ok');
+    } else {
+      await window.TwoelveAtalhos.adicionar({ nome, alvo, tecla: teclaDoAtalho });
+      setStatus('⌨️ Atalho "' + nome + '" criado → ' + alvoLabel, 'ok');
+    }
+
+    bootstrap.Modal.getInstance($('modal-atalho')).hide();
+    await renderAtalhos();
+  }
+
+  async function excluirAtalho(id, nome) {
+    if (!confirm('Excluir o atalho "' + nome + '"?')) return;
+    await window.TwoelveAtalhos.remover(id);
+    await renderAtalhos();
+    setStatus('🗑️ Atalho "' + nome + '" excluído.', 'ok');
+  }
+
+  // ---------- lista ----------
+  async function renderAtalhos() {
+    const lista = await window.TwoelveAtalhos.listar();
+    const estadoAtual = await window.TwoelveAtalhos.carregar();
+    $('config-atalhos-ativo').checked = estadoAtual.ativo;
+
+    const caixa = $('atalhos-lista');
+    caixa.innerHTML = '';
+
+    if (!lista.length) {
+      const vazio = document.createElement('div');
+      vazio.className = 'atalhos-vazio';
+      vazio.textContent = 'Nenhum atalho ainda. Clique em “＋ Novo atalho” para criar o primeiro.';
+      caixa.appendChild(vazio);
+      return;
+    }
+
+    for (const at of lista) {
+      const linha = document.createElement('div');
+      linha.className = 'atalho-linha';
+
+      const tecla = document.createElement('div');
+      tecla.className = 'atalho-tecla';
+      tecla.textContent = window.TwoelveAtalhos.formatarTecla(at.tecla);
+
+      const info = document.createElement('div');
+      info.className = 'atalho-info';
+
+      const nomeEl = document.createElement('div');
+      nomeEl.className = 'atalho-nome';
+      nomeEl.textContent = at.nome;
+
+      const alvoEl = document.createElement('div');
+      alvoEl.className = 'atalho-alvo';
+      alvoEl.textContent = '↳ ' + (at.alvoLabel || at.alvo);
+      window.TwoelveAtalhos.rotuloAlvo(at.alvo).then((txt) => { alvoEl.textContent = '↳ ' + txt; });
+
+      info.appendChild(nomeEl);
+      info.appendChild(alvoEl);
+
+      const acoes = document.createElement('div');
+      acoes.className = 'atalho-acoes';
+
+      const btnEdit = document.createElement('button');
+      btnEdit.className = 'btn btn-steel-outline';
+      btnEdit.textContent = '✏️';
+      btnEdit.title = 'Editar atalho';
+      btnEdit.addEventListener('click', () => abrirModalAtalho(at));
+
+      const btnDel = document.createElement('button');
+      btnDel.className = 'btn btn-steel-outline';
+      btnDel.textContent = '🗑️';
+      btnDel.title = 'Excluir atalho';
+      btnDel.addEventListener('click', () => excluirAtalho(at.id, at.nome));
+
+      acoes.appendChild(btnEdit);
+      acoes.appendChild(btnDel);
+
+      linha.appendChild(tecla);
+      linha.appendChild(info);
+      linha.appendChild(acoes);
+      caixa.appendChild(linha);
+    }
+  }
+
+  function configurarAtalhos() {
+    $('btn-novo-atalho').addEventListener('click', () => abrirModalAtalho(null));
+    $('btn-gravar-tecla').addEventListener('click', () => {
+      if (gravando) pararGravacao();
+      else iniciarGravacao();
+    });
+    $('btn-salvar-atalho').addEventListener('click', salvarAtalho);
+
+    $('config-atalhos-ativo').addEventListener('change', async (e) => {
+      await window.TwoelveAtalhos.definirAtivo(e.target.checked);
+      setStatus(e.target.checked ? '⌨️ Atalhos ativados.' : '⏸️ Atalhos desativados.', 'ok');
+    });
+
+    // fechar o modal enquanto grava → cancela a gravação
+    $('modal-atalho').addEventListener('hidden.bs.modal', () => {
+      if (gravando) pararGravacao();
+    });
+
+    // atalhos mudados em outra aba (ou pelo ERP) → redesenha a lista
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((mudancas, area) => {
+        if (area === 'local' && mudancas.twoelveAtalhos) renderAtalhos();
+      });
+    }
+  }
+
+  // ==============================================
   // DIÁLOGO DE COR (centralizado)
   // ==============================================
   function configurarDialogCor() {
@@ -714,6 +956,8 @@
     await carregarConfiguracoes();
     configurarEventos();
     configurarDialogCor();
+    configurarAtalhos();
+    await renderAtalhos();
 
     // branch salva para o modal de atualização (default: main)
     try {
