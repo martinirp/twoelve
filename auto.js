@@ -555,17 +555,17 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         const chaveAtual = getChaveEstavel(novaAba);
         if (chaveAtual) chavesProcessadas.add(chaveAtual);
 
-        // [config] Troca de aba DESLIGADA: nao abre a conversa e nao manda nada.
+        // [config] Troca de aba DESLIGADA: nao abre a conversa e nao mexe na tela.
         // A aba fica marcada e o listener de clique do usuario retoma a saudacao.
         if (!trocaDeAbaAtiva() && !abaEhAtiva(novaAba)) {
             novaAba.setAttribute('data-twoelve-aguardando-usuario', 'true');
-            console.log('[TwoElve] Pausa: saudacao da aba #' + numero + ' espera voce abrir a aba.');
+            console.log('[TwoElve] ⏸️ Troca de aba desligada — a aba #' + numero + ' espera voce abrir.');
             filaDeAbas.length = 0;
             jaProcessouNovaAba = false;
             return;
         }
 
-        if (!pularListagem) await clicarBotaoListagem();
+        if (!pularListagem && trocaDeAbaAtiva()) await clicarBotaoListagem();
         if (trocaDeAbaAtiva()) {
             await selecionarAba(novaAba);
         }

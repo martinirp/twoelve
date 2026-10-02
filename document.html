@@ -880,7 +880,7 @@
                             </tr>
                             <tr>
                                 <td><code>atalhos.js</code></td>
-                                <td>Atalhos de teclado personalizáveis. CRUD em <code>chrome.storage.local</code> (chave <code>twoelveAtalhos</code>), escuta de <code>keydown</code> e execução do alvo (módulo da toolbar ou item salvo). Também roda dentro de <code>config.html</code>.</td>
+                                <td>Atalhos de teclado personalizáveis. CRUD em <code>chrome.storage.local</code> (chave <code>twoelveAtalhos</code>), escuta de <code>keydown</code> e alvos: módulo da toolbar, item salvo, encaminhamento padrão ou botão do Utils (Login, Huawei, Wi-Fi, PPPoE, LAN, Endereço). Também roda dentro de <code>config.html</code>.</td>
                                 <td><code>window.TwoelveAtalhos</code></td>
                                 <td><code>chrome.storage</code>, DOM da toolbar</td>
                                 <td><span class="badge badge-ok">✅ COMPLETO</span></td>
@@ -929,7 +929,7 @@
                             </tr>
                             <tr>
                                 <td><code>auto.js</code></td>
-                                <td>Automação de novas abas (saudação automática em horário comercial) e remoção do overlay cinza.</td>
+                                <td>Automação de novas abas (saudação automática em horário comercial) e remoção do overlay cinza. A troca de aba é ligada/desligada em Configurações (<code>trocarAbaSaudacao</code>, padrão ligada); desligada, o TwoElve não abre nem troca abas — numeram e esperam o atendente abrir a aba.</td>
                                 <td><code>window.TwoElve</code></td>
                                 <td><code>window.TwoElveControle</code> (de <code>utils.js</code>)</td>
                                 <td><span class="badge badge-ok">✅ COMPLETO</span></td>
@@ -1503,7 +1503,7 @@ fechar() {
                     <div class="schema-row">
                         <div class="schema-key">twoelveAtalhos</div>
                         <div class="schema-type">Object</div>
-                        <div class="schema-desc">Atalhos de teclado: <code>{ ativo: Boolean, lista: [{ id, nome, alvo, tecla }] }</code>. O campo <code>alvo</code> é <code>"origem:id"</code> — <code>modulo:utils</code>, <code>suporte:&lt;id&gt;</code>, <code>mensagem:&lt;id&gt;</code>, <code>visita:&lt;id&gt;</code> ou <code>encaminhar:&lt;id&gt;</code>.</div>
+                        <div class="schema-desc">Atalhos de teclado: <code>{ ativo: Boolean, lista: [{ id, nome, alvo, tecla }] }</code>. O campo <code>alvo</code> é <code>"origem:id"</code> — <code>modulo:utils</code>, <code>suporte:&lt;id&gt;</code>, <code>mensagem:&lt;id&gt;</code>, <code>visita:&lt;id&gt;</code> ou <code>encaminhar:&lt;id&gt;</code>. Os botões do Utils usam <code>util:&lt;chave&gt;</code> (ex.: <code>util:login-router</code>, <code>util:huawei-login</code>) e abrem o modal do Utils antes de clicar.</div>
                     </div>
 
                     <div class="schema-row">
@@ -1515,7 +1515,7 @@ fechar() {
                     <div class="schema-row">
                         <div class="schema-key">twoelveUpdatePending</div>
                         <div class="schema-type">Object</div>
-                        <div class="schema-desc">Espaço de passagem da atualização automática: <code>{ versao, abas, em }</code>. Gravado antes de <code>chrome.runtime.reload()</code> e consumido por <code>concluirAtualizacaoPendente()</code> quando a <code>config.html</code> recarrega — é quem recarrega as abas do ERP e mostra o "✅ atualizado".</div>
+                        <div class="schema-desc">Espaço de passagem da atualização automática: <code>{ versao, em }</code>. Gravado antes de <code>chrome.runtime.reload()</code> e consumido por <code>concluirAtualizacaoPendente()</code> quando a <code>config.html</code> recarrega — é quem mostra o "✅ atualizado" e recarrega a página.</div>
                     </div>
                 </div>
             </div>
