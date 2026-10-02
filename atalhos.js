@@ -42,6 +42,24 @@
         { tipo: 'encaminhar', rotulo: '📤 Encaminhamentos', storage: 'forwardButtons', campo: 'text', acao: 'encaminhar', global: 'abrirModalEncaminhar' }
     ];
 
+    // ---------- botões do módulo Utils (vivos no código, não no storage) ----------
+    // "abre" = precisa abrir um modal dentro do Utils antes de achar o botão.
+    const UTILS = [
+        { chave: 'login-router', rotulo: '🔐 Login Router' },
+        { chave: 'login-alternativo', rotulo: '🔑 Login (Alternativo)' },
+        { chave: 'huawei-manager', rotulo: '🌐 Huawei Manager' },
+        { chave: 'endereco', rotulo: '📍 Editar Endereço' },
+        { chave: 'huawei-login', rotulo: '🔑 Login Huawei', abre: '🌐 Huawei Manager' },
+        { chave: 'huawei-ler-tudo', rotulo: '📥 Ler Tudo', abre: '🌐 Huawei Manager' },
+        { chave: 'ler-wifi', rotulo: '📥 Ler Wi-Fi', abre: '🌐 Huawei Manager' },
+        { chave: 'salvar-wifi-24', rotulo: '💾 Salvar 2.4', abre: '🌐 Huawei Manager' },
+        { chave: 'salvar-wifi-5', rotulo: '💾 Salvar 5', abre: '🌐 Huawei Manager' },
+        { chave: 'ler-pppoe', rotulo: '📥 Ler PPPoE', abre: '🌐 Huawei Manager' },
+        { chave: 'salvar-pppoe', rotulo: '💾 Salvar', abre: '🌐 Huawei Manager' },
+        { chave: 'ler-lan', rotulo: '📥 Ler LAN', abre: '🌐 Huawei Manager' },
+        { chave: 'salvar-lan', rotulo: '💾 Salvar LAN', abre: '🌐 Huawei Manager' }
+    ];
+
     // ---------- itens padrão do programa (aparecem quando a lista salva está vazia) ----------
     // espelha os getDefaults() de cada módulo: os ids são os mesmos, então o atalho
     // continua funcionando mesmo depois de o usuário salvar a lista no storage.
@@ -263,6 +281,15 @@
             });
         }
 
+        grupos.push({
+            rotulo: '🛠️ Utilitários',
+            itens: UTILS.filter((u) => !u.abre).map((u) => ({ valor: 'util:' + u.chave, rotulo: u.rotulo }))
+        });
+        grupos.push({
+            rotulo: '🌐 Huawei Manager',
+            itens: UTILS.filter((u) => u.abre).map((u) => ({ valor: 'util:' + u.chave, rotulo: u.rotulo }))
+        });
+
         return grupos;
     }
 
@@ -275,6 +302,10 @@
             return m ? m.rotulo : '(módulo desconhecido)';
         }
         const partes = String(alvo).split(':');
+        if (partes[0] === 'util') {
+            const u = UTILS.find((x) => x.chave === partes[1]);
+            return u ? '🛠️ Utilitários · ' + u.rotulo : '(botão desconhecido)';
+        }
         const fonte = FONTES.find((f) => f.tipo === partes[0]);
         if (!fonte) return '(alvo desconhecido)';
         try {
@@ -329,6 +360,27 @@
         return false;
     }
 
+    /** Executa um botão do Utils (abre o modal do Utils e o modal interno, se precisar). */
+    async function executarUtil(chave) {
+        const item = UTILS.find((u) => u.chave === chave);
+        if (!item) return;
+
+        // o modal pode já estar aberto
+        if (await clicarItem(item.rotulo, 250)) return;
+
+        if (!abrirModulo('utils')) {
+            aviso('Módulo indisponível nesta página.');
+            return;
+        }
+        if (item.abre && !(await clicarItem(item.abre, 2500))) {
+            aviso('Não encontrei "' + item.abre + '" no Utils.');
+            return;
+        }
+        if (!(await clicarItem(item.rotulo, 2500))) {
+            aviso('Não encontrei "' + item.rotulo + '" no Utils.');
+        }
+    }
+
     async function executar(atalho) {
         if (!atalho || !atalho.alvo) return;
 
@@ -343,8 +395,15 @@
             return;
         }
 
-        // --- alvo = item salvo no storage ---
         const partes = String(atalho.alvo).split(':');
+
+        // --- alvo = botão do Utils ---
+        if (partes[0] === 'util') {
+            await executarUtil(partes[1]);
+            return;
+        }
+
+        // --- alvo = item salvo no storage ---
         const fonte = FONTES.find((f) => f.tipo === partes[0]);
         if (!fonte) return;
 

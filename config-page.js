@@ -25,6 +25,7 @@
     temaPagina: 'claro',
     saudacaoMensagem: '',
     saudacaoPrevia: false,
+    trocarAbaSaudacao: true,
     toolbarLayout: 'superior',
     larguraAba: 76
   };
@@ -77,6 +78,7 @@
     'customButtons', 'customVisits', 'whitePanelMessages',
     'forwardButtons', 'customTheme', 'controleAbas',
     'autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia',
+    'trocarAbaSaudacao',
     'twoelveConfig', 'twoelveAtalhos'
   ];
 
@@ -431,6 +433,7 @@
     $('config-saudacao').checked = c.autoMensagem !== false;
     $('config-saudacao-mensagem').value = c.saudacaoMensagem || '';
     $('config-saudacao-previa').checked = c.saudacaoPrevia === true;
+    $('config-trocar-aba').checked = c.trocarAbaSaudacao !== false;
     $('config-overlay').checked = c.autoOverlay !== false;
 
     aplicarTemaPagina(c.temaPagina || 'claro', false);
@@ -529,11 +532,12 @@
 
       // toggles de automação ficam em chaves próprias
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        const resAut = await chrome.storage.local.get(['autoMensagem', 'autoOverlay', 'saudacaoMensagem', 'saudacaoPrevia']);
+        const resAut = await chrome.storage.local.get(['autoMensagem', 'autoOverlay', 'saudacaoMensagem', 'saudacaoPrevia', 'trocarAbaSaudacao']);
         configAtual.autoMensagem = resAut.autoMensagem !== false;
         configAtual.autoOverlay = resAut.autoOverlay !== false;
         configAtual.saudacaoMensagem = resAut.saudacaoMensagem || '';
         configAtual.saudacaoPrevia = resAut.saudacaoPrevia === true;
+        configAtual.trocarAbaSaudacao = resAut.trocarAbaSaudacao !== false;
       }
 
       // versão sem saudação (main): esconde os controles de saudação da página
@@ -617,6 +621,10 @@
 
     $('config-saudacao-previa').addEventListener('change', (e) => {
       salvarToggleAutomatizacao({ saudacaoPrevia: e.target.checked });
+    });
+
+    $('config-trocar-aba').addEventListener('change', (e) => {
+      salvarToggleAutomatizacao({ trocarAbaSaudacao: e.target.checked });
     });
 
     // tema da própria página (claro/escuro)
