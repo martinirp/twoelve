@@ -336,6 +336,16 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
     };
 
     // ─── SELECIONAR ABA ───────────────────────────────────────────────────────────
+    const trocaDeAbaAtiva = () =>
+        !(window.TwoElveControle && window.TwoElveControle.trocarAbaSaudacao === false);
+
+    const abaEhAtiva = (abaElement) => {
+        if (!abaElement) return false;
+        if (abaElement.getAttribute('aria-selected') === 'true') return true;
+        if (abaElement.classList && abaElement.classList.contains('Mui-selected')) return true;
+        return false;
+    };
+
     const selecionarAba = (abaElement) => {
         return new Promise((resolve) => {
             if (!abaElement) return resolve(false);
@@ -526,7 +536,8 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
     };
 
     // ─── PROCESSAR ABA DA FILA ────────────────────────────────────────────────────
-    const processarAba = async (novaAba) => {
+    const processarAba = async (novaAba, opcoes) => {
+        const pularListagem = !!(opcoes && opcoes.pularListagem);
         const protocolo = novaAba.querySelector('.MuiTypography-root.jss31');
         const cliente   = novaAba.querySelector('.jss30');
         const numero    = novaAba.getAttribute('data-twoelve-numero') || '-';
@@ -544,8 +555,20 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         const chaveAtual = getChaveEstavel(novaAba);
         if (chaveAtual) chavesProcessadas.add(chaveAtual);
 
-        await clicarBotaoListagem();
-        await selecionarAba(novaAba);
+        // [config] Troca de aba DESLIGADA: nao abre a conversa e nao manda nada.
+        // A aba fica marcada e o listener de clique do usuario retoma a saudacao.
+        if (!trocaDeAbaAtiva() && !abaEhAtiva(novaAba)) {
+            novaAba.setAttribute('data-twoelve-aguardando-usuario', 'true');
+            console.log('[TwoElve] Pausa: saudacao da aba #' + numero + ' espera voce abrir a aba.');
+            filaDeAbas.length = 0;
+            jaProcessouNovaAba = false;
+            return;
+        }
+
+        if (!pularListagem) await clicarBotaoListagem();
+        if (trocaDeAbaAtiva()) {
+            await selecionarAba(novaAba);
+        }
 
         console.log("[TwoElve] ⏳ Aguardando conteúdo da nova aba carregar...");
         await aguardarElemento('.ql-editor.dx-htmleditor-content', 4000);
@@ -582,12 +605,40 @@ const enviarMensagemSeHorarioComercial = (textarea) => {
         //           drena mais rápido (~10s por atendimento). O reset roda DEPOIS
         //           do processarAba terminar (incluindo o envio de 2-3s), então
         //           não há sobreposição entre um atendimento e o seguinte.
-        setTimeout(() => {
+        if (trocaDeAbaAtiva()) {
+            setTimeout(() => {
+                jaProcessouNovaAba = false;
+                console.log("[TwoElve] 🔄 Sistema resetado — rescaneando abas...");
+                verificarEProcessarNovasAbas();
+            }, 3000);
+        } else {
+            // sem troca de aba nada é processado em fila: espera o clique do usuário
             jaProcessouNovaAba = false;
-            console.log("[TwoElve] 🔄 Sistema resetado — rescaneando abas...");
-            verificarEProcessarNovasAbas();
-        }, 3000);
+        }
     };
+
+    // ─── ABERTURA PELO ATENDENTE (troca de aba desligada) ──────────────────────────
+    // Com o toggle desligado o TwoElve nao abre a conversa: ele marca a aba e espera.
+    // Quando o atendente clicar nela, a saudacao acontece na hora.
+    const retomarSaudacaoAoAbrir = async (aba) => {
+        if (!aba || aba.getAttribute('data-twoelve-aguardando-usuario') !== 'true') return;
+        if (trocaDeAbaAtiva()) {
+            aba.removeAttribute('data-twoelve-aguardando-usuario');
+            return;
+        }
+        aba.removeAttribute('data-twoelve-aguardando-usuario');
+        console.log('[TwoElve] Voce abriu a aba #' + (aba.getAttribute('data-twoelve-numero') || '-') + ' - saudando agora.');
+        jaProcessouNovaAba = true;
+        await processarAba(aba, { pularListagem: true });
+    };
+
+    document.addEventListener('click', (e) => {
+        const alvo = e && e.target;
+        if (!alvo || !alvo.closest) return;
+        const aba = alvo.closest('[role="tab"]');
+        if (!aba) return;
+        setTimeout(() => { retomarSaudacaoAoAbrir(aba); }, 900);
+    }, true);
 
     // ─── FLUXO PRINCIPAL ──────────────────────────────────────────────────────────
     // Detecção por NÓ (elemento do DOM), não por texto: a aba é reconhecida assim
