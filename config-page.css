@@ -206,6 +206,14 @@ body.tema-escuro .card.steel { box-shadow: none; }
 .btn { border-radius: 0; font-weight: 600; border: 1px solid var(--l-borda-forte); }
 .btn:active { transform: translateY(1px); }
 .btn-export { background: #28a745; border-color: #1e7e34; color: #fff; }
+
+/* botão "Liberar" — mesma altura dos campos */
+#direito-add {
+  height: 38px;
+  padding: 0 14px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .btn-export:hover { background: #218838; color: #fff; }
 .btn-import { background: #3d78c9; border-color: #2f5da0; color: #fff; }
 .btn-import:hover { background: #3568b0; color: #fff; }
@@ -311,6 +319,44 @@ body.tema-escuro .card.steel { box-shadow: none; }
   padding: 14px;
   border: 1px dashed var(--l-borda);
   text-align: center;
+}
+
+/* ---------- clique direito: páginas liberadas ---------- */
+.direito-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.direito-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--l-card-alt);
+  border: 1px solid var(--l-borda);
+  border-left: 3px solid var(--l-texto);
+}
+.direito-host {
+  flex: 1 1 auto;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  word-break: break-all;
+}
+.direito-remover {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--l-borda);
+  background: transparent;
+  color: var(--l-texto);
+  cursor: pointer;
+  line-height: 1;
+}
+.direito-remover:hover {
+  background: var(--l-texto);
+  color: var(--l-card);
 }
 .atalho-linha {
   display: flex;

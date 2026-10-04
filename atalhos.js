@@ -45,6 +45,7 @@
     // ---------- botões do módulo Utils (vivos no código, não no storage) ----------
     // "abre" = precisa abrir um modal dentro do Utils antes de achar o botão.
     const UTILS = [
+        { chave: 'clique-direito', rotulo: '🖱️ Clique direito nesta página', interno: true },
         { chave: 'login-router', rotulo: '🔐 Login Router' },
         { chave: 'login-alternativo', rotulo: '🔑 Login (Alternativo)' },
         { chave: 'huawei-manager', rotulo: '🌐 Huawei Manager' },
@@ -364,6 +365,19 @@
     async function executarUtil(chave) {
         const item = UTILS.find((u) => u.chave === chave);
         if (!item) return;
+
+        // botão com ação interna (não é clicado pelo texto do modal)
+        if (item.interno) {
+            if (!window.TwoelveDireito) {
+                aviso('Clique direito: só funciona com a extensão carregada.');
+                return;
+            }
+            const liberou = await window.TwoelveDireito.alternar();
+            aviso(liberou
+                ? '🖱️ Clique direito original liberado nesta página.'
+                : '🖱️ TwoElve voltou a segurar o botão direito aqui.');
+            return;
+        }
 
         // o modal pode já estar aberto
         if (await clicarItem(item.rotulo, 250)) return;

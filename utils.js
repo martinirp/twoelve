@@ -21,6 +21,11 @@
     // "document_start" no manifest (registra-se antes de qualquer script da página).
     // Padrão: LIGADO. Pode desligar via Configuração/storage
     // (desbloquearColagem / desbloquearCliqueDireito = false).
+    // Páginas LIBERADAS: em algumas o menu de botão direito ORIGINAL do site é
+    // obrigatório (o TwoElve segura o evento e mostra o menu do navegador).
+    // A lista paginasSemBloqueioDireito guarda os domínios liberados — dá pra
+    // alternar direto pelo modal do Utils (ícone da barra) e gerenciar em
+    // Configurações → 🖱️ Clique direito.
     (function desbloquearInteracoes() {
         const DENTRO_DA_UI = '.twoelve-modal-container, .twoelve-wrapper, .twoelve-abas';
         const bloquear = (e) => {
@@ -37,6 +42,23 @@
 
         let colagemAtiva = null;
         let direitoAtivo = null;
+
+        // ---------- páginas liberadas (menu original do site) ----------
+        const CHAVE_LISTA = 'paginasSemBloqueioDireito';
+        const hostDaPagina = () => {
+            try { return String(location.hostname || '').toLowerCase(); } catch (e) { return ''; }
+        };
+        let direitoGlobal = true;   //TwoElve segura o botão direito em todas as páginas
+        let listaLivre = [];       // domínios em que o site fica com o menu dele
+
+        const paginaLiberada = () => {
+            const h = hostDaPagina();
+            return !!h && listaLivre.indexOf(h) >= 0;
+        };
+        const reaplicarDireito = () => {
+            if (direitoGlobal && !paginaLiberada()) ligarDireito();
+            else desligarDireito();
+        };
 
         const ligarColagem = () => {
             if (colagemAtiva) return;
@@ -76,14 +98,47 @@
         // se o usuário desativou explicitamente na Configuração, ajusta após ler o storage
         const aplicar = (res) => {
             const colagemOn = res.desbloquearColagem !== false;
-            const direitoOn = res.desbloquearCliqueDireito !== false;
+            direitoGlobal = res.desbloquearCliqueDireito !== false;
+            if (Array.isArray(res[CHAVE_LISTA])) listaLivre = res[CHAVE_LISTA];
             if (colagemOn) ligarColagem(); else desligarColagem();
-            if (direitoOn) ligarDireito(); else desligarDireito();
-            console.log(`[TwoElve] ✅ Desbloqueio ativo em todas as páginas — colar: ${colagemOn ? 'ON' : 'OFF'}, botão direito: ${direitoOn ? 'ON' : 'OFF'} (UI da extensão preservada).`);
+            reaplicarDireito();
+            console.log(`[TwoElve] ✅ Desbloqueio ativo em todas as páginas — colar: ${colagemOn ? 'ON' : 'OFF'}, botão direito: ${direitoGlobal ? 'ON' : 'OFF'} (UI da extensão preservada).`);
+            if (paginaLiberada()) console.log(`[TwoElve] 🖱️ Página liberada (${hostDaPagina()}) — usando o clique direito original do site.`);
         };
-        const p = chrome.storage.local.get(['desbloquearColagem', 'desbloquearCliqueDireito']);
+        const CHAVES = ['desbloquearColagem', 'desbloquearCliqueDireito', CHAVE_LISTA];
+        const p = chrome.storage.local.get(CHAVES);
         if (p && p.then) { p.then(aplicar, aplicar); }
-        else { chrome.storage.local.get(['desbloquearColagem', 'desbloquearCliqueDireito'], aplicar); }
+        else { chrome.storage.local.get(CHAVES, aplicar); }
+
+        // muda de página liberada/vista ao vivo (toggle no Utils ou nas Configurações)
+        try {
+            chrome.storage.onChanged.addListener((mudancas, area) => {
+                if (area !== 'local') return;
+                if (mudancas.desbloquearCliqueDireito) direitoGlobal = mudancas.desbloquearCliqueDireito.newValue !== false;
+                if (mudancas[CHAVE_LISTA]) listaLivre = Array.isArray(mudancas[CHAVE_LISTA].newValue) ? mudancas[CHAVE_LISTA].newValue : [];
+                reaplicarDireito();
+            });
+        } catch (e) {}
+
+        // API usada pelo modal do Utils e (opcionalmente) por atalhos
+        window.TwoelveDireito = {
+            chave: hostDaPagina,
+            liberada: paginaLiberada,
+            globalAtivo: () => direitoGlobal,
+            lista: () => listaLivre.slice(),
+            alternar: async () => {
+                const h = hostDaPagina();
+                if (!h) return false;
+                const atual = listaLivre.slice();
+                const i = atual.indexOf(h);
+                if (i >= 0) atual.splice(i, 1); else atual.push(h);
+                listaLivre = atual;
+                try { await chrome.storage.local.set({ [CHAVE_LISTA]: atual }); } catch (e) {}
+                reaplicarDireito();
+                console.log(`[TwoElve] 🖱️ ${h}: clique direito ${i >= 0 ? 'do TwoElve' : 'original do site'}.`);
+                return i < 0;
+            }
+        };
     })();
 
     // ==============================================
@@ -1255,6 +1310,52 @@
         });
         
         // Toggles de automação removidos — agora ficam na página de Configurações.
+
+        // 🖱️ Clique direito desta página — atalho para liberar/devolver o menu
+        // original do site sem precisar ir nas Configurações.
+        if (window.TwoelveDireito) {
+            const box = document.createElement('div');
+            box.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:10px;border:1px dashed var(--twoelve-borda,rgba(255,255,255,.25));border-radius:8px;';
+
+            const titulo = document.createElement('div');
+            titulo.textContent = '🖱️ Clique direito';
+            titulo.style.cssText = 'font-weight:600;font-size:13px;';
+            box.appendChild(titulo);
+
+            const estado = document.createElement('div');
+            estado.style.cssText = 'font-size:12px;opacity:.85;word-break:break-all;';
+            box.appendChild(estado);
+
+            const pintar = () => {
+                const h = window.TwoelveDireito.chave() || '(desconhecido)';
+                const livre = window.TwoelveDireito.liberada();
+                const globalOn = window.TwoelveDireito.globalAtivo();
+                estado.textContent = h + ' — ' + (livre
+                    ? 'usando o clique direito original do site.'
+                    : (globalOn ? 'o TwoElve segura o botão direito (menu do navegador).' : 'TwoElve desligado — menu original do site.'));
+                btnDireito.textContent = livre ? '🔒 Voltar a segurar aqui' : '✅ Usar o clique direito desta página';
+                btnDireito.className = livre ? 'twoelve-button' : 'twoelve-button-primary';
+            };
+
+            const btnDireito = document.createElement('button');
+            btnDireito.addEventListener('click', async () => {
+                const liberou = await window.TwoelveDireito.alternar();
+                pintar();
+                console.log(liberou
+                    ? '[TwoElve] 🖱️ Menu original do site liberado nesta página (dá um F5 se não mudar na hora).'
+                    : '[TwoElve] 🖱️ TwoElve voltou a segurar o botão direito nesta página.');
+            });
+
+            pintar();
+            box.appendChild(btnDireito);
+
+            const dica = document.createElement('div');
+            dica.style.cssText = 'font-size:11px;opacity:.7;';
+            dica.textContent = 'Fica salvo nesta página — ou em Configurações → 🖱️ Clique direito.';
+            box.appendChild(dica);
+
+            container.appendChild(box);
+        }
 
         modal.setConteudoElemento(container);
         modal.setFecharCallback(() => {
