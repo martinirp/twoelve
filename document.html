@@ -915,8 +915,8 @@
                             </tr>
                             <tr>
                                 <td><code>utils.js</code></td>
-                                <td>Login automático em roteadores (Huawei, FiberHome), painel do roteador via iframe oculto (Ghost Frame), processador de endereços e automações (TwoElveControle).</td>
-                                <td><code>window.abrirModalUtils</code>, <code>window.TwoElveControle</code></td>
+                                <td>Login automático em roteadores (Huawei, FiberHome), painel do roteador via iframe oculto (Ghost Frame), processador de endereços e automações (TwoElveControle). Também desbloqueia colagem/clique direito em <code>document_start</code>: segura o <code>contextmenu</code> da página por padrão, mas nas páginas liberadas (<code>paginasSemBloqueioDireito</code>) deixa o site usar o botão direito dele.</td>
+                                <td><code>window.abrirModalUtils</code>, <code>window.TwoElveControle</code>, <code>window.TwoelveDireito</code></td>
                                 <td><code>TwoelveModalBase</code>, <code>chrome.storage</code></td>
                                 <td><span class="badge badge-ok">✅ COMPLETO</span></td>
                             </tr>
@@ -1516,6 +1516,17 @@ fechar() {
                         <div class="schema-key">twoelveUpdatePending</div>
                         <div class="schema-type">Object</div>
                         <div class="schema-desc">Espaço de passagem da atualização automática: <code>{ versao, em }</code>. Gravado antes de <code>chrome.runtime.reload()</code> e consumido por <code>concluirAtualizacaoPendente()</code> quando a <code>config.html</code> recarrega — é quem mostra o "✅ atualizado" e recarrega a página.</div>
+                    </div>
+                    <div class="schema-row">
+                        <div class="schema-key">desbloquearCliqueDireito</div>
+                        <div class="schema-type">Boolean</div>
+                        <div class="schema-desc">Mestre do botão direito (padrão <code>true</code>). Ligado, o <code>utils.js</code> segura o <code>contextmenu</code> da página em <code>document_start</code> (permite colar senha e mostra o menu do navegador). Desligado, cada site fica com o menu original dele.</div>
+                    </div>
+
+                    <div class="schema-row">
+                        <div class="schema-key">paginasSemBloqueioDireito</div>
+                        <div class="schema-type">Array&lt;String&gt;</div>
+                        <div class="schema-desc">Domínios <strong>liberados</strong>: a página usa o clique direito original do site mesmo com o mestre ligado. Alimentada pelo botão "✅ Usar o clique direito desta página" em 🛠️ Utilitários (ou por atalho <code>util:clique-direito</code>) e gerenciada em Configurações → 🖱️ Clique direito. Ex.: <code>["192.168.0.1", "intranet.empresa.com"]</code>.</div>
                     </div>
                 </div>
             </div>

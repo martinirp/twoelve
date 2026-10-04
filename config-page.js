@@ -79,6 +79,7 @@
     'forwardButtons', 'customTheme', 'controleAbas',
     'autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia',
     'trocarAbaSaudacao',
+    'desbloquearColagem', 'desbloquearCliqueDireito', 'paginasSemBloqueioDireito',
     'twoelveConfig', 'twoelveAtalhos'
   ];
 
@@ -421,6 +422,68 @@
   // ==============================================
   // CARREGAR / SALVAR CONFIGURAÇÃO
   // ==============================================
+  // ---------- clique direito: páginas liberadas ----------
+  function salvarDireito(patch) {
+    if (patch) Object.assign(configAtual, patch);
+    try {
+      chrome.storage.local.set({
+        desbloquearColagem: configAtual.desbloquearColagem !== false,
+        desbloquearCliqueDireito: configAtual.desbloquearCliqueDireito !== false,
+        paginasSemBloqueioDireito: configAtual.paginasSemBloqueioDireito || []
+      });
+    } catch (e) {}
+  }
+
+  function renderizarDireito() {
+    const lista = $('direito-lista');
+    if (!lista) return;
+    const itens = Array.isArray(configAtual.paginasSemBloqueioDireito) ? configAtual.paginasSemBloqueioDireito : [];
+    lista.innerHTML = '';
+    itens.forEach((host) => {
+      const linha = document.createElement('div');
+      linha.className = 'direito-linha';
+
+      const nome = document.createElement('span');
+      nome.className = 'direito-host';
+      nome.textContent = host;
+      linha.appendChild(nome);
+
+      const btn = document.createElement('button');
+      btn.className = 'direito-remover';
+      btn.textContent = '✕';
+      btn.title = 'Voltar a segurar o botão direito nesta página';
+      btn.addEventListener('click', () => {
+        configAtual.paginasSemBloqueioDireito = itens.filter((h) => h !== host);
+        salvarDireito();
+        renderizarDireito();
+        setStatus('Clique direito do TwoElve voltou em ' + host, 'ok');
+      });
+      linha.appendChild(btn);
+      lista.appendChild(linha);
+    });
+    if ($('direito-vazio')) $('direito-vazio').hidden = itens.length > 0;
+  }
+
+  function adicionarDireito() {
+    const campo = $('direito-novo');
+    if (!campo) return;
+    let host = (campo.value || '').trim().toLowerCase();
+    if (!host) return;
+    // aceita URL colada: extrai só o domínio
+    if (/^https?:\/\//i.test(host)) {
+      try { host = new URL(host).hostname.toLowerCase(); } catch (e) { }
+    }
+    host = host.replace(/^\/+|\/+$/g, '').split('/')[0];
+    if (!host) { setStatus('Endereço inválido.', 'erro'); return; }
+    const itens = Array.isArray(configAtual.paginasSemBloqueioDireito) ? configAtual.paginasSemBloqueioDireito : [];
+    if (itens.indexOf(host) >= 0) { setStatus(host + ' já está liberado.', ''); return; }
+    configAtual.paginasSemBloqueioDireito = itens.concat([host]);
+    salvarDireito();
+    campo.value = '';
+    renderizarDireito();
+    setStatus('Clique direito original liberado em ' + host, 'ok');
+  }
+
   function preencherForm() {
     const c = configAtual;
 
@@ -434,6 +497,10 @@
     $('config-saudacao-mensagem').value = c.saudacaoMensagem || '';
     $('config-saudacao-previa').checked = c.saudacaoPrevia === true;
     $('config-trocar-aba').checked = c.trocarAbaSaudacao !== false;
+
+    // clique direito: master + lista de páginas liberadas
+    if ($('config-direito')) $('config-direito').checked = c.desbloquearCliqueDireito !== false;
+    renderizarDireito();
     $('config-overlay').checked = c.autoOverlay !== false;
 
     aplicarTemaPagina(c.temaPagina || 'claro', false);
@@ -538,6 +605,12 @@
         configAtual.saudacaoMensagem = resAut.saudacaoMensagem || '';
         configAtual.saudacaoPrevia = resAut.saudacaoPrevia === true;
         configAtual.trocarAbaSaudacao = resAut.trocarAbaSaudacao !== false;
+
+        // desbloqueio de colagem/clique direito (chaves próprias)
+        const resDir = await chrome.storage.local.get(['desbloquearColagem', 'desbloquearCliqueDireito', 'paginasSemBloqueioDireito']);
+        configAtual.desbloquearColagem = resDir.desbloquearColagem !== false;
+        configAtual.desbloquearCliqueDireito = resDir.desbloquearCliqueDireito !== false;
+        configAtual.paginasSemBloqueioDireito = Array.isArray(resDir.paginasSemBloqueioDireito) ? resDir.paginasSemBloqueioDireito : [];
       }
 
       // versão sem saudação (main): esconde os controles de saudação da página
@@ -626,6 +699,20 @@
     $('config-trocar-aba').addEventListener('change', (e) => {
       salvarToggleAutomatizacao({ trocarAbaSaudacao: e.target.checked });
     });
+
+    // clique direito
+    if ($('config-direito')) {
+      $('config-direito').addEventListener('change', (e) => {
+        salvarDireito({ desbloquearCliqueDireito: e.target.checked });
+        setStatus(e.target.checked
+          ? 'TwoElve voltando a segurar o botão direito em todas as páginas (recarregue as abas já abertas).'
+          : 'TwoElve parou de mexer no botão direito (recarregue as abas já abertas).', 'ok');
+      });
+    }
+    if ($('direito-add')) $('direito-add').addEventListener('click', adicionarDireito);
+    if ($('direito-novo')) {
+      $('direito-novo').addEventListener('keydown', (e) => { if (e.key === 'Enter') adicionarDireito(); });
+    }
 
     // tema da própria página (claro/escuro)
     document.querySelectorAll('#config-tema-pagina button').forEach((btn) => {
