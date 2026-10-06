@@ -20,6 +20,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    if (message.action === 'twoelve-open-utils') {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs && tabs[0] && tabs[0].id != null) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'twoelve-open-utils' }, () => { void chrome.runtime.lastError; });
+        }
+        sendResponse && sendResponse({ ok: true });
+      });
+      return true;
+    }
+
     if (message.action === 'twoelve-config-changed') {
       // Reaplica as configurações em todas as abas abertas
       chrome.tabs.query({}, (tabs) => {
@@ -40,7 +50,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.storage.local.get(['twoelveUpdateInfo'], (res) => {
         const cache = res.twoelveUpdateInfo || {};
         const agora = Date.now();
-        // usa o cache se a última checagem foi há menos de 30 minutos
+        // usa o cache se a última checagem foi há menos de 30 minutos E for a mesma branch
+        // ignora cache se branch mudou (evita mostrar update errado entre dev/main)
+        if (cache.branch && cache.branch !== branch) {
+          cache = {};
+        }
+
         if (cache.checkedAt && cache.branch === branch && (agora - cache.checkedAt) < 30 * 60 * 1000) {
           sendResponse && sendResponse({
             local: local,
