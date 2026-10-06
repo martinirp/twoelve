@@ -45,6 +45,7 @@
     // ---------- botões do módulo Utils (vivos no código, não no storage) ----------
     // "abre" = precisa abrir um modal dentro do Utils antes de achar o botão.
     const UTILS = [
+        { chave: 'nao-usar-pagina', rotulo: '⏸️ Não usar nesta página', interno: true },
         { chave: 'clique-direito', rotulo: '🖱️ Clique direito nesta página', interno: true },
         { chave: 'login-router', rotulo: '🔐 Login Router' },
         { chave: 'login-alternativo', rotulo: '🔑 Login (Alternativo)' },
@@ -368,14 +369,29 @@
 
         // botão com ação interna (não é clicado pelo texto do modal)
         if (item.interno) {
-            if (!window.TwoelveDireito) {
-                aviso('Clique direito: só funciona com a extensão carregada.');
+            if (item.chave === 'clique-direito') {
+                if (!window.TwoelveDireito) {
+                    aviso('Clique direito: só funciona com a extensão carregada.');
+                    return;
+                }
+                const liberou = await window.TwoelveDireito.alternar();
+                aviso(liberou
+                    ? '🖱️ Clique direito original liberado nesta página.'
+                    : '🖱️ TwoElve voltou a segurar o botão direito aqui.');
                 return;
             }
-            const liberou = await window.TwoelveDireito.alternar();
-            aviso(liberou
-                ? '🖱️ Clique direito original liberado nesta página.'
-                : '🖱️ TwoElve voltou a segurar o botão direito aqui.');
+            if (item.chave === 'nao-usar-pagina') {
+                if (!window.TwoelvePagina) {
+                    aviso('Só funciona com a extensão carregada.');
+                    return;
+                }
+                const desativou = await window.TwoelvePagina.alternar();
+                aviso(desativou
+                    ? '⏸️ TwoElve DESATIVADO nesta página. A página vai recarregar...'
+                    : '▶️ TwoElve ATIVADO nesta página. A página vai recarregar...');
+                setTimeout(() => { try { location.reload(); } catch (e) {} }, 900);
+                return;
+            }
             return;
         }
 

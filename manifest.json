@@ -1,8 +1,8 @@
-{
+﻿{
   "manifest_version": 3,
   "name": "TwoElve v6.0",
-  "version": "6.0.38",
-  "description": "Automação para plataforma Elleven",
+  "version": "6.0.39",
+  "description": "AutomaÃ§Ã£o para plataforma Elleven",
   "twoelveSaudacao": false,
   "twoelveBranch": "main",
   "permissions": [
@@ -58,3 +58,4 @@
     "service_worker": "background.js"
   }
 }
+
