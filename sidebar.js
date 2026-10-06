@@ -4,6 +4,11 @@
 // ==============================================
 
 (function() {
+    // se a extensão estiver desativada nesta página, não injeta toolbar
+    if (window.TwoelvePagina && window.TwoelvePagina.desativada()) {
+        try { console.log('[TwoElve] ⏸️ TwoElve desativado nesta página (' + window.TwoelvePagina.host() + ') — toolbar não injetada.'); } catch (e) {}
+        return;
+    }
 
     // --- WRAPPER (posicionamento fixo no topo) ---
     const wrapper = document.createElement('div');

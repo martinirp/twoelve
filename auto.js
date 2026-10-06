@@ -15,6 +15,11 @@
 //             5s → 3s (~10s por atendimento). O reset roda após o processarAba
 //             terminar, então não há sobreposição entre atendimentos.
 (function() {
+    // se a extensão estiver desativada nesta página, não roda automação
+    if (window.TwoelvePagina && window.TwoelvePagina.desativada()) {
+        try { console.log('[TwoElve] ⏸️ TwoElve desativado nesta página (' + window.TwoelvePagina.host() + ') — automação ignorada.'); } catch (e) {}
+        return;
+    }
     console.log("[TwoElve] 🚀 Iniciando auto.js...");
 
     // Saudação automática existe SOMENTE na branch dev (flag "twoelveSaudacao" no manifest)

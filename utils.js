@@ -27,6 +27,11 @@
     // alternar direto pelo modal do Utils (ícone da barra) e gerenciar em
     // Configurações → 🖱️ Clique direito.
     (function desbloquearInteracoes() {
+        // se a extensão estiver desativada nesta página, não bloqueia NADA
+        if (window.TwoelvePagina && window.TwoelvePagina.desativada()) {
+            try { console.log('[TwoElve] ⏸️ Página desativada (' + window.TwoelvePagina.host() + ') — extensão inativa aqui. Colar/clique direito normais.'); } catch (e) {}
+            return;
+        }
         const DENTRO_DA_UI = '.twoelve-modal-container, .twoelve-wrapper, .twoelve-abas';
         const bloquear = (e) => {
             // impede QUALQUER handler da página (captura/alvo/bolha e atributos on*)
@@ -42,6 +47,45 @@
 
         let colagemAtiva = null;
         let direitoAtivo = null;
+
+        // ---------- páginas desativadas (extensão INATIVA nessa página) ----------
+        const CHAVE_PAGINAS_DESATIVADAS = 'paginasDesativadas';
+        let paginasDesativadasLista = [];
+
+        const hostPaginaAtual = () => {
+            try { return String(location.hostname || '').toLowerCase(); } catch (e) { return ''; }
+        };
+        const paginaDesativada = () => {
+            const h = hostPaginaAtual();
+            return !!h && paginasDesativadasLista.indexOf(h) >= 0;
+        };
+        const carregarPaginasDesativadas = (res) => {
+            paginasDesativadasLista = Array.isArray(res[CHAVE_PAGINAS_DESATIVADAS]) ? res[CHAVE_PAGINAS_DESATIVADAS] : [];
+        };
+        try {
+            const pd = chrome.storage.local.get([CHAVE_PAGINAS_DESATIVADAS]);
+            if (pd && pd.then) pd.then(carregarPaginasDesativadas); else chrome.storage.local.get([CHAVE_PAGINAS_DESATIVADAS], carregarPaginasDesativadas);
+            chrome.storage.onChanged.addListener((mudancas, area) => {
+                if (area !== 'local' || !mudancas[CHAVE_PAGINAS_DESATIVADAS]) return;
+                paginasDesativadasLista = Array.isArray(mudancas[CHAVE_PAGINAS_DESATIVADAS].newValue) ? mudancas[CHAVE_PAGINAS_DESATIVADAS].newValue : [];
+            });
+        } catch (e) {}
+
+        window.TwoelvePagina = {
+            host: hostPaginaAtual,
+            desativada: paginaDesativada,
+            lista: () => paginasDesativadasLista.slice(),
+            alternar: async () => {
+                const h = hostPaginaAtual();
+                if (!h) return false;
+                const atual = paginasDesativadasLista.slice();
+                const i = atual.indexOf(h);
+                if (i >= 0) atual.splice(i, 1); else atual.push(h);
+                paginasDesativadasLista = atual;
+                try { await chrome.storage.local.set({ [CHAVE_PAGINAS_DESATIVADAS]: atual }); } catch (e) {}
+                return i < 0; // true = desativou agora
+            }
+        };
 
         // ---------- páginas liberadas (menu original do site) ----------
         const CHAVE_LISTA = 'paginasSemBloqueioDireito';
@@ -1310,6 +1354,45 @@
         });
         
         // Toggles de automação removidos — agora ficam na página de Configurações.
+
+        // ⏸️ Página: desativar/reativar a extensão nesta página
+        if (window.TwoelvePagina) {
+            const boxP = document.createElement('div');
+            boxP.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:10px;border:1px dashed var(--twoelve-borda,rgba(255,255,255,.25));border-radius:8px;';
+
+            const tituloP = document.createElement('div');
+            tituloP.textContent = '⏸️ Página';
+            tituloP.style.cssText = 'font-weight:600;font-size:13px;';
+            boxP.appendChild(tituloP);
+
+            const estadoP = document.createElement('div');
+            estadoP.style.cssText = 'font-size:12px;opacity:.85;word-break:break-all;';
+            boxP.appendChild(estadoP);
+
+            const btnP = document.createElement('button');
+            const pintarP = () => {
+                const h = window.TwoelvePagina.host() || '(desconhecido)';
+                const off = window.TwoelvePagina.desativada();
+                estadoP.textContent = h + ' — ' + (off ? 'TwoElve DESATIVADO nesta página.' : 'TwoElve ATIVO nesta página.');
+                btnP.textContent = off ? '▶️ Usar nesta página' : '⏸️ Não usar nesta página';
+                btnP.className = off ? 'twoelve-button-primary' : 'twoelve-button';
+            };
+            btnP.addEventListener('click', async () => {
+                await window.TwoelvePagina.alternar();
+                pintarP();
+                // recarrega pra toolbar/automação sumirem/aparecerem na hora
+                setTimeout(() => { try { location.reload(); } catch (e) {} }, 250);
+            });
+            pintarP();
+            boxP.appendChild(btnP);
+
+            const dicaP = document.createElement('div');
+            dicaP.style.cssText = 'font-size:11px;opacity:.7;';
+            dicaP.textContent = 'Ideal pra páginas onde Ctrl+C/Ctrl+V travam.';
+            boxP.appendChild(dicaP);
+
+            container.appendChild(boxP);
+        }
 
         // 🖱️ Clique direito desta página — atalho para liberar/devolver o menu
         // original do site sem precisar ir nas Configurações.

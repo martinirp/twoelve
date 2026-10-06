@@ -79,7 +79,7 @@
     'forwardButtons', 'customTheme', 'controleAbas',
     'autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia',
     'trocarAbaSaudacao',
-    'desbloquearColagem', 'desbloquearCliqueDireito', 'paginasSemBloqueioDireito',
+    'desbloquearColagem', 'desbloquearCliqueDireito', 'paginasSemBloqueioDireito', 'paginasDesativadas',
     'twoelveConfig', 'twoelveAtalhos'
   ];
 
@@ -429,15 +429,16 @@
       chrome.storage.local.set({
         desbloquearColagem: configAtual.desbloquearColagem !== false,
         desbloquearCliqueDireito: configAtual.desbloquearCliqueDireito !== false,
-        paginasSemBloqueioDireito: configAtual.paginasSemBloqueioDireito || []
+        paginasSemBloqueioDireito: configAtual.paginasSemBloqueioDireito || [],
+        paginasDesativadas: configAtual.paginasDesativadas || []
       });
     } catch (e) {}
   }
 
-  function renderizarDireito() {
-    const lista = $('direito-lista');
+  function renderizarPaginasDesativadas() {
+    const lista = $('pagdesativ-lista');
     if (!lista) return;
-    const itens = Array.isArray(configAtual.paginasSemBloqueioDireito) ? configAtual.paginasSemBloqueioDireito : [];
+    const itens = Array.isArray(configAtual.paginasDesativadas) ? configAtual.paginasDesativadas : [];
     lista.innerHTML = '';
     itens.forEach((host) => {
       const linha = document.createElement('div');
@@ -451,17 +452,36 @@
       const btn = document.createElement('button');
       btn.className = 'direito-remover';
       btn.textContent = '✕';
-      btn.title = 'Voltar a segurar o botão direito nesta página';
+      btn.title = 'Reativar nesta página';
       btn.addEventListener('click', () => {
-        configAtual.paginasSemBloqueioDireito = itens.filter((h) => h !== host);
-        salvarDireito();
-        renderizarDireito();
-        setStatus('Clique direito do TwoElve voltou em ' + host, 'ok');
+        configAtual.paginasDesativadas = itens.filter((h) => h !== host);
+        try { chrome.storage.local.set({ paginasDesativadas: configAtual.paginasDesativadas }); } catch (e) {}
+        renderizarPaginasDesativadas();
+        setStatus('TwoElve reativado em ' + host + ' (recarregue a aba)', 'ok');
       });
       linha.appendChild(btn);
       lista.appendChild(linha);
     });
-    if ($('direito-vazio')) $('direito-vazio').hidden = itens.length > 0;
+    if ($('pagdesativ-vazio')) $('pagdesativ-vazio').hidden = itens.length > 0;
+  }
+
+  function adicionarPaginasDesativadas() {
+    const campo = $('pagdesativ-novo');
+    if (!campo) return;
+    let host = (campo.value || '').trim().toLowerCase();
+    if (!host) return;
+    if (/^https?:\/\//i.test(host)) {
+      try { host = new URL(host).hostname.toLowerCase(); } catch (e) {}
+    }
+    host = host.replace(/^\/+|\/+$/g, '').split('/')[0];
+    if (!host) { setStatus('Domínio inválido.', 'erro'); return; }
+    const itens = Array.isArray(configAtual.paginasDesativadas) ? configAtual.paginasDesativadas : [];
+    if (itens.indexOf(host) >= 0) { setStatus(host + ' já está na lista.', ''); return; }
+    configAtual.paginasDesativadas = itens.concat([host]);
+    try { chrome.storage.local.set({ paginasDesativadas: configAtual.paginasDesativadas }); } catch (e) {}
+    campo.value = '';
+    renderizarPaginasDesativadas();
+    setStatus('TwoElve DESATIVADO em ' + host + ' (recarregue a aba para aplicar)', 'ok');
   }
 
   function adicionarDireito() {
@@ -501,6 +521,7 @@
     // clique direito: master + lista de páginas liberadas
     if ($('config-direito')) $('config-direito').checked = c.desbloquearCliqueDireito !== false;
     renderizarDireito();
+    renderizarPaginasDesativadas();
     $('config-overlay').checked = c.autoOverlay !== false;
 
     aplicarTemaPagina(c.temaPagina || 'claro', false);
@@ -611,6 +632,7 @@
         configAtual.desbloquearColagem = resDir.desbloquearColagem !== false;
         configAtual.desbloquearCliqueDireito = resDir.desbloquearCliqueDireito !== false;
         configAtual.paginasSemBloqueioDireito = Array.isArray(resDir.paginasSemBloqueioDireito) ? resDir.paginasSemBloqueioDireito : [];
+        configAtual.paginasDesativadas = Array.isArray(resDir.paginasDesativadas) ? resDir.paginasDesativadas : [];
       }
 
       // versão sem saudação (main): esconde os controles de saudação da página
@@ -712,6 +734,10 @@
     if ($('direito-add')) $('direito-add').addEventListener('click', adicionarDireito);
     if ($('direito-novo')) {
       $('direito-novo').addEventListener('keydown', (e) => { if (e.key === 'Enter') adicionarDireito(); });
+    }
+    if ($('pagdesativ-add')) $('pagdesativ-add').addEventListener('click', adicionarPaginasDesativadas);
+    if ($('pagdesativ-novo')) {
+      $('pagdesativ-novo').addEventListener('keydown', (e) => { if (e.key === 'Enter') adicionarPaginasDesativadas(); });
     }
 
     // tema da própria página (claro/escuro)

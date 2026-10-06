@@ -1054,6 +1054,10 @@ async function abrirModalEditarBotao(botao) {
 }
 
 (async function init() {
+    if (window.TwoelvePagina && window.TwoelvePagina.desativada()) {
+        try { console.log('[TwoElve] ⏸️ TwoElve desativado nesta página (' + window.TwoelvePagina.host() + ') — content.js não inicializa.'); } catch (e) {}
+        return;
+    }
     await carregarCustomButtons();
     
     // Expor globalmente para o sidebar.js usar via gerenciarModal()

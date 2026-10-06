@@ -221,6 +221,26 @@
         </div>
       </div>
 
+      <!-- ================= PÁGINAS DESATIVADAS ================= -->
+      <div class="col-12">
+        <div class="card steel h-100">
+          <div class="card-header">⏸️ Páginas desativadas</div>
+          <div class="card-body">
+            <p class="texto-fraco mb-3">
+              Quando uma página estiver na lista, o TwoElve <strong>não</strong> injeta a toolbar,
+              <strong>não</strong> bloqueia colar/clique direito e <strong>não</strong> roda a automação.
+              Assim o Ctrl+C/Ctrl+V funcionam normalmente.
+            </p>
+            <div class="d-flex gap-2 align-items-center mb-3">
+              <input type="text" class="form-control" id="pagdesativ-novo" placeholder="domínio (ex.: site.com ou 192.168.0.1)" />
+              <button class="btn btn-export" id="pagdesativ-add">➕ Adicionar</button>
+            </div>
+            <div id="pagdesativ-lista" class="direito-lista"></div>
+            <div class="texto-fraco mt-2" id="pagdesativ-vazio" hidden>Nenhuma página desativada — TwoElve ativo em todos os sites.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- ================= PREFERÊNCIAS ================= -->
       <div class="col-12 col-md-6">
         <div class="card steel h-100">
