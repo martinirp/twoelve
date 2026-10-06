@@ -1397,6 +1397,45 @@
         // 🖱️ Clique direito desta página — atalho para liberar/devolver o menu
         // original do site sem precisar ir nas Configurações.
         if (window.TwoelveDireito) {
+            const boxP = document.createElement('div');
+            boxP.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:10px;border:1px dashed var(--twoelve-borda,rgba(255,255,255,.25));border-radius:8px;';
+
+            const tituloP = document.createElement('div');
+            tituloP.textContent = '⏸️ Página';
+            tituloP.style.cssText = 'font-weight:600;font-size:13px;';
+            boxP.appendChild(tituloP);
+
+            const estadoP = document.createElement('div');
+            estadoP.style.cssText = 'font-size:12px;opacity:.85;word-break:break-all;';
+            boxP.appendChild(estadoP);
+
+            const btnP = document.createElement('button');
+            const pintarP = () => {
+                const h = window.TwoelvePagina.host() || '(desconhecido)';
+                const off = window.TwoelvePagina.desativada();
+                estadoP.textContent = h + ' — ' + (off ? 'TwoElve DESATIVADO nesta página.' : 'TwoElve ATIVO nesta página.');
+                btnP.textContent = off ? '▶️ Usar nesta página' : '⏸️ Não usar nesta página';
+                btnP.className = off ? 'twoelve-button-primary' : 'twoelve-button';
+            };
+            btnP.addEventListener('click', async () => {
+                await window.TwoelvePagina.alternar();
+                pintarP();
+                setTimeout(() => { try { location.reload(); } catch (e) {} }, 250);
+            });
+            pintarP();
+            boxP.appendChild(btnP);
+
+            const dicaP = document.createElement('div');
+            dicaP.style.cssText = 'font-size:11px;opacity:.7;';
+            dicaP.textContent = 'Ideal pra páginas onde Ctrl+C/Ctrl+V travam.';
+            boxP.appendChild(dicaP);
+
+            container.appendChild(boxP);
+        }
+
+        // 🖱️ Clique direito desta página — atalho para liberar/devolver o menu
+        // original do site sem precisar ir nas Configurações.
+        if (window.TwoelveDireito) {
             const box = document.createElement('div');
             box.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:10px;border:1px dashed var(--twoelve-borda,rgba(255,255,255,.25));border-radius:8px;';
 
