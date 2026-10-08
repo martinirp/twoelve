@@ -9,12 +9,12 @@
     const style = document.createElement('style');
     style.id = 'twoelve-button-styles';
     style.textContent = `
-        .twoelve-modal-container button {
+        .twoelve-modal-container button:not(.twoelve-modal-close):not(.config-btn) {
             all: unset;
         }
         
         .twoelve-modal-container .twoelve-button,
-        .twoelve-modal-container button:not(.twoelve-modal-close) {
+        .twoelve-modal-container button:not(.twoelve-modal-close):not(.config-btn) {
             display: inline-block;
             padding: 12px 16px;
             font-size: 0.9em;
@@ -33,7 +33,7 @@
         }
         
         .twoelve-modal-container .twoelve-button:hover,
-        .twoelve-modal-container button:not(.twoelve-modal-close):hover {
+        .twoelve-modal-container button:not(.twoelve-modal-close):not(.config-btn):hover {
             background: repeating-linear-gradient(
                 45deg,
                 var(--modal-custom-btn-bg, #e5e7eb),
@@ -47,7 +47,7 @@
         }
         
         .twoelve-modal-container .twoelve-button:active,
-        .twoelve-modal-container button:not(.twoelve-modal-close):active {
+        .twoelve-modal-container button:not(.twoelve-modal-close):not(.config-btn):active {
             transform: translate(1px, 1px);
             box-shadow: 1px 1px 0px var(--modal-custom-btn-border, #000000);
         }

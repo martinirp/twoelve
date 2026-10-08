@@ -59,25 +59,76 @@
     let modal = null;
     let configAtual = { ...DEFAULTS };
 
+    // Merge profundo que tolera dados antigos/parciais/nulos salvos no storage.
+    // Ex.: { fonte: null } ou { fonte: 'Arial' } (formato de versão antiga)
+    // não podem sobrescrever o objeto default por inteiro — senão o modal
+    // quebra com TypeError em configAtual.fonte.tamanho e abre vazio.
+    function mergeConfig(base, extra) {
+        if (!extra || typeof extra !== 'object' || Array.isArray(extra)) {
+            return { ...base };
+        }
+        const chaves = new Set([...Object.keys(base), ...Object.keys(extra)]);
+        const resultado = {};
+        for (const chave of chaves) {
+            const vBase = base[chave];
+            const vExtra = extra[chave];
+            if (vExtra === null || vExtra === undefined) {
+                resultado[chave] = vBase !== null && typeof vBase === 'object' && !Array.isArray(vBase)
+                    ? mergeConfig(vBase, {})
+                    : vBase;
+            } else if (vBase !== null && typeof vBase === 'object' && !Array.isArray(vBase)) {
+                resultado[chave] = typeof vExtra === 'object' && !Array.isArray(vExtra)
+                    ? mergeConfig(vBase, vExtra)
+                    : mergeConfig(vBase, {}); // valor escalar no lugar de objeto (formato antigo) → usa default
+            } else {
+                resultado[chave] = vExtra;
+            }
+        }
+        return resultado;
+    }
+
+    function normalizarConfig(parcial) {
+        return mergeConfig(DEFAULTS, parcial || {});
+    }
+
+    function aplicarConfiguracoesGlobaisSeguro() {
+        try {
+            aplicarConfiguracoesGlobais();
+        } catch (error) {
+            console.error('Erro ao aplicar configurações globais:', error);
+        }
+    }
+
     async function carregarConfiguracoes() {
         try {
             const result = await chrome.storage.local.get(['twoelveConfig']);
-            if (result.twoelveConfig) {
-                configAtual = { ...DEFAULTS, ...result.twoelveConfig };
+            configAtual = normalizarConfig(result.twoelveConfig);
+            aplicarConfiguracoesGlobaisSeguro();
+
+            // Autocorreção: se o storage tinha dados quebrados/antigos,
+            // grava a versão normalizada de volta para não quebrar de novo.
+            try {
+                if (JSON.stringify(configAtual) !== JSON.stringify(result.twoelveConfig)) {
+                    await chrome.storage.local.set({ twoelveConfig: configAtual });
+                }
+            } catch (storageError) {
+                console.error('Erro ao normalizar storage:', storageError);
             }
-            aplicarConfiguracoesGlobais();
+
             return configAtual;
         } catch (error) {
             console.error('Erro ao carregar configurações:', error);
-            return DEFAULTS;
+            configAtual = normalizarConfig(null);
+            aplicarConfiguracoesGlobaisSeguro();
+            return configAtual;
         }
     }
 
     async function salvarConfiguracoes(novaConfig) {
         try {
-            configAtual = { ...configAtual, ...novaConfig };
+            configAtual = mergeConfig(configAtual, novaConfig);
             await chrome.storage.local.set({ twoelveConfig: configAtual });
-            aplicarConfiguracoesGlobais();
+            aplicarConfiguracoesGlobaisSeguro();
             console.log('✅ Configurações salvas');
             return true;
         } catch (error) {
@@ -143,13 +194,13 @@
                 font-size: 1em !important;
             }
             
-            .twoelve-modal-body * {
+            .twoelve-modal-body *:not(.config-btn) {
                 font-family: var(--modal-custom-font-family) !important;
                 color: var(--modal-custom-text) !important;
             }
             
             .twoelve-button,
-            .twoelve-modal-container button:not(.twoelve-modal-close) {
+            .twoelve-modal-container button:not(.twoelve-modal-close):not(.config-btn) {
                 background: var(--modal-custom-btn-bg) !important;
                 color: var(--modal-custom-btn-text) !important;
                 border-color: var(--modal-custom-btn-border) !important;
@@ -158,13 +209,13 @@
             }
             
             .twoelve-button:hover,
-            .twoelve-modal-container button:not(.twoelve-modal-close):hover {
+            .twoelve-modal-container button:not(.twoelve-modal-close):not(.config-btn):hover {
                 border-color: var(--modal-custom-btn-border) !important;
                 box-shadow: 5px 5px 0px var(--modal-custom-btn-border) !important;
             }
             
             .twoelve-button:active,
-            .twoelve-modal-container button:not(.twoelve-modal-close):active {
+            .twoelve-modal-container button:not(.twoelve-modal-close):not(.config-btn):active {
                 box-shadow: 1px 1px 0px var(--modal-custom-btn-border) !important;
             }
             
@@ -576,9 +627,10 @@
             modal = null;
         });
 
-        setTimeout(() => {
-            configurarEventos();
-        }, 100);
+        // Vincula os eventos imediatamente (o conteúdo já está no DOM).
+        // O setTimeout(100) antigo deixava a aba sem eventos se algo
+        // atrasasse ou se o usuário interagisse rápido demais.
+        configurarEventos();
     };
 
     // Reaplica as configurações quando forem alteradas pela página de configurações
