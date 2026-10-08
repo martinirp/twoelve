@@ -1,4 +1,8 @@
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     // ⚙️ CONFIGURAÇÕES
     const DELAY_MIN = 1500; // Delay mínimo em milissegundos
     const DELAY_MAX = 4000; // Delay máximo em milissegundos

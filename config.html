@@ -169,29 +169,22 @@
         </div>
       </div>
 
-      <!-- ================= CLIQUE DIREITO ================= -->
+      <!-- ================= PÁGINAS (onde o TwoElve atua) ================= -->
       <div class="col-12">
         <div class="card steel h-100">
-          <div class="card-header d-flex align-items-center justify-content-between">
-            <span>🖱️ Clique direito</span>
-            <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="config-direito" />
-              <label class="form-check-label" for="config-direito">TwoElve segura em todas as páginas</label>
-            </div>
-          </div>
+          <div class="card-header">🌐 Páginas</div>
           <div class="card-body">
             <p class="texto-fraco mb-3">
-              O TwoElve segura o botão direito da página pra você conseguir colar senha e abrir o
-              menu do navegador onde o site bloqueia. Em <strong>algumas páginas você precisa do
-              clique direito original do site</strong> — libere só essas. Também dá pra alternar
-              direto em 🛠️ Utilitários, na página em que você está.
+              O TwoElve só funciona nas páginas desta lista — em <strong>todas as outras</strong> a
+              extensão fica totalmente inativa (sem toolbar, sem bloqueio de colar/clique direito,
+              sem automação). Adicione o domínio de cada página onde você quer usar a extensão.
             </p>
             <div class="d-flex gap-2 align-items-center mb-3">
-              <input type="text" class="form-control" id="direito-novo" placeholder="endereço (ex.: 192.168.0.1 ou intranet.empresa.com)" />
-              <button class="btn btn-export" id="direito-add">➕ Liberar</button>
+              <input type="text" class="form-control" id="paginas-novo" placeholder="domínio (ex.: erp.elo.net.br)" />
+              <button class="btn btn-export" id="paginas-add">➕ Adicionar</button>
             </div>
-            <div id="direito-lista" class="direito-lista"></div>
-            <div class="texto-fraco mt-2" id="direito-vazio" hidden>Nenhuma página liberada — o clique direito do TwoElve vale em todas elas.</div>
+            <div id="paginas-lista" class="direito-lista"></div>
+            <div class="texto-fraco mt-2" id="paginas-vazio" hidden>Nenhuma página adicionada — TwoElve ativo apenas em erp.elo.net.br.</div>
           </div>
         </div>
       </div>

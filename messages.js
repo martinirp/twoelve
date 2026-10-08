@@ -3,7 +3,11 @@
 // Gerenciador de Mensagens Rápidas
 // ==============================================
 
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     // ==============================================
     // 1. STORAGE (MANTIDO ORIGINAL)
     // ==============================================
