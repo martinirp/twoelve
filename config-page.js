@@ -89,6 +89,38 @@
 
   let configAtual = { ...DEFAULTS };
 
+  // Merge profundo que tolera dados antigos/parciais/nulos salvos no storage.
+  // Ex.: { fonte: null } ou { fonte: 'Arial' } (formato de versão antiga)
+  // não podem sobrescrever o objeto default por inteiro — senão a página
+  // quebra (TypeError em configAtual.fonte.familia) e nenhum botão funciona.
+  function mergeConfig(base, extra) {
+    if (!extra || typeof extra !== 'object' || Array.isArray(extra)) {
+      return { ...base };
+    }
+    const chaves = new Set([...Object.keys(base), ...Object.keys(extra)]);
+    const resultado = {};
+    for (const chave of chaves) {
+      const vBase = base[chave];
+      const vExtra = extra[chave];
+      if (vExtra === null || vExtra === undefined) {
+        resultado[chave] = vBase !== null && typeof vBase === 'object' && !Array.isArray(vBase)
+          ? mergeConfig(vBase, {})
+          : vBase;
+      } else if (vBase !== null && typeof vBase === 'object' && !Array.isArray(vBase)) {
+        resultado[chave] = typeof vExtra === 'object' && !Array.isArray(vExtra)
+          ? mergeConfig(vBase, vExtra)
+          : mergeConfig(vBase, {}); // valor escalar no lugar de objeto (formato antigo) → usa default
+      } else {
+        resultado[chave] = vExtra;
+      }
+    }
+    return resultado;
+  }
+
+  function normalizarConfig(parcial) {
+    return mergeConfig(DEFAULTS, parcial || {});
+  }
+
   // ---------- helpers ----------
   function setStatus(msg, tipo = '') {
     statusPage.hidden = false;
@@ -435,6 +467,36 @@
     } catch (e) {}
   }
 
+  function renderizarDireito() {
+    const lista = $('direito-lista');
+    if (!lista) return;
+    const itens = Array.isArray(configAtual.paginasSemBloqueioDireito) ? configAtual.paginasSemBloqueioDireito : [];
+    lista.innerHTML = '';
+    itens.forEach((host) => {
+      const linha = document.createElement('div');
+      linha.className = 'direito-linha';
+
+      const nome = document.createElement('span');
+      nome.className = 'direito-host';
+      nome.textContent = host;
+      linha.appendChild(nome);
+
+      const btn = document.createElement('button');
+      btn.className = 'direito-remover';
+      btn.textContent = '✕';
+      btn.title = 'Remover liberação';
+      btn.addEventListener('click', () => {
+        configAtual.paginasSemBloqueioDireito = itens.filter((h) => h !== host);
+        salvarDireito();
+        renderizarDireito();
+        setStatus('Clique direito bloqueado novamente em ' + host, 'ok');
+      });
+      linha.appendChild(btn);
+      lista.appendChild(linha);
+    });
+    if ($('direito-vazio')) $('direito-vazio').hidden = itens.length > 0;
+  }
+
   function renderizarPaginasDesativadas() {
     const lista = $('pagdesativ-lista');
     if (!lista) return;
@@ -614,9 +676,9 @@
       const res = (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local)
         ? await chrome.storage.local.get(['twoelveConfig'])
         : {};
-      configAtual = { ...DEFAULTS, ...(res.twoelveConfig || {}) };
-      configAtual.cores = { ...DEFAULTS.cores, ...(configAtual.cores || {}) };
-      configAtual.fonte = { ...DEFAULTS.fonte, ...(configAtual.fonte || {}) };
+      configAtual = normalizarConfig(res.twoelveConfig);
+      configAtual.cores = mergeConfig(DEFAULTS.cores, configAtual.cores);
+      configAtual.fonte = mergeConfig(DEFAULTS.fonte, configAtual.fonte);
 
       // toggles de automação ficam em chaves próprias
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -641,12 +703,17 @@
       }
     } catch (e) {
       console.error('Erro ao carregar configurações:', e);
+      configAtual = normalizarConfig(null);
     }
-    preencherForm();
+    try {
+      preencherForm();
+    } catch (e) {
+      console.error('Erro ao preencher o formulário:', e);
+    }
   }
 
   async function salvarConfiguracoes(patch) {
-    configAtual = { ...configAtual, ...patch };
+    configAtual = mergeConfig(configAtual, patch);
     try {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         await chrome.storage.local.set({ twoelveConfig: configAtual });
@@ -1159,12 +1226,13 @@
       $('update-local-versao').textContent = $('versao-local').textContent;
     }
 
-    await carregarConfiguracoes();
-    configurarEventos();
-    configurarDialogCor();
-    configurarAtalhos();
-    await renderAtalhos();
-    await concluirAtualizacaoPendente();
+    try { await carregarConfiguracoes(); } catch (e) { console.error('Erro ao carregar configurações (init):', e); }
+    // Eventos SEMPRE vinculados, mesmo se algo acima falhar — sem isso nenhum botão funciona.
+    try { configurarEventos(); } catch (e) { console.error('Erro ao configurar eventos:', e); }
+    try { configurarDialogCor(); } catch (e) { console.error('Erro ao configurar diálogo de cor:', e); }
+    try { configurarAtalhos(); } catch (e) { console.error('Erro ao configurar atalhos:', e); }
+    try { await renderAtalhos(); } catch (e) { console.error('Erro ao renderizar atalhos:', e); }
+    try { await concluirAtualizacaoPendente(); } catch (e) { console.error('Erro ao concluir atualização pendente:', e); }
 
     // branch salva para o modal de atualização (default: main)
     try {
