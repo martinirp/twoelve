@@ -16,8 +16,13 @@
 //   visita:<id>      (customVisits)
 //   encaminhar:<id>  (forwardButtons)
 // ==============================================
-(() => {
+(async () => {
     'use strict';
+
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
 
     if (window.__twoelveAtalhos__) return;
     window.__twoelveAtalhos__ = true;

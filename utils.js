@@ -3,7 +3,11 @@
 // Utilitários (Huawei, Endereço, Login, etc.)
 // ==============================================
 
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     // ==============================================
     // 0. DESBLOQUEAR COLA / CLIQUE DIREITO (todas as páginas)
     // ==============================================

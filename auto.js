@@ -14,7 +14,11 @@
 //   [v6.1.23] Fila de atendimentos acumulados mais rápida: espera entre abas
 //             5s → 3s (~10s por atendimento). O reset roda após o processarAba
 //             terminar, então não há sobreposição entre atendimentos.
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     // se a extensão estiver desativada nesta página, não roda automação
     if (window.TwoelvePagina && window.TwoelvePagina.desativada()) {
         try { console.log('[TwoElve] ⏸️ TwoElve desativado nesta página (' + window.TwoelvePagina.host() + ') — automação ignorada.'); } catch (e) {}

@@ -5,7 +5,11 @@
 // (branch conforme o manifest: twoelveBranch). Se houver, mostra uma barra
 // fixa no topo da página atual. Clicar na barra (ou em "ATUALIZAR") abre o
 // passo a passo de atualização com botão de download do ZIP.
-(function () {
+(async function () {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     if (window.top !== window) return; // só no frame principal
 
     const manifest = (chrome.runtime.getManifest && chrome.runtime.getManifest()) || {};

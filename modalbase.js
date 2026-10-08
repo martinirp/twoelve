@@ -2,7 +2,11 @@
 // MODAL BASE - CORRIGIDO (X funcionando e drag isolado)
 // ==============================================
 
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     if (!document.getElementById('modal-base-styles')) {
         const style = document.createElement('style');
         style.id = 'modal-base-styles';

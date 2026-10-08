@@ -2,7 +2,11 @@
 // BUTTON.JS - Padrão de Botões TwoElve v6.0
 // ==============================================
 
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     const oldStyle = document.getElementById('twoelve-button-styles');
     if (oldStyle) oldStyle.remove();
     

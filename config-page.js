@@ -80,7 +80,7 @@
     'autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia',
     'trocarAbaSaudacao',
     'desbloquearColagem', 'desbloquearCliqueDireito', 'paginasSemBloqueioDireito', 'paginasDesativadas',
-    'twoelveConfig', 'twoelveAtalhos'
+    'twoelvePaginasAutorizadas', 'twoelveConfig', 'twoelveAtalhos'
   ];
 
   const $ = (id) => document.getElementById(id);
@@ -454,23 +454,18 @@
   // ==============================================
   // CARREGAR / SALVAR CONFIGURAÇÃO
   // ==============================================
-  // ---------- clique direito: páginas liberadas ----------
-  function salvarDireito(patch) {
-    if (patch) Object.assign(configAtual, patch);
-    try {
-      chrome.storage.local.set({
-        desbloquearColagem: configAtual.desbloquearColagem !== false,
-        desbloquearCliqueDireito: configAtual.desbloquearCliqueDireito !== false,
-        paginasSemBloqueioDireito: configAtual.paginasSemBloqueioDireito || [],
-        paginasDesativadas: configAtual.paginasDesativadas || []
-      });
-    } catch (e) {}
+  // ---------- páginas onde o TwoElve atua (whitelist) ----------
+  function salvarPaginas() {
+    const lista = (Array.isArray(configAtual.paginasAutorizadas) && configAtual.paginasAutorizadas.length)
+      ? configAtual.paginasAutorizadas : ['erp.elo.net.br'];
+    configAtual.paginasAutorizadas = lista;
+    try { chrome.storage.local.set({ twoelvePaginasAutorizadas: lista }); } catch (e) {}
   }
 
-  function renderizarDireito() {
-    const lista = $('direito-lista');
+  function renderizarPaginas() {
+    const lista = $('paginas-lista');
     if (!lista) return;
-    const itens = Array.isArray(configAtual.paginasSemBloqueioDireito) ? configAtual.paginasSemBloqueioDireito : [];
+    const itens = Array.isArray(configAtual.paginasAutorizadas) ? configAtual.paginasAutorizadas : [];
     lista.innerHTML = '';
     itens.forEach((host) => {
       const linha = document.createElement('div');
@@ -484,17 +479,17 @@
       const btn = document.createElement('button');
       btn.className = 'direito-remover';
       btn.textContent = '✕';
-      btn.title = 'Remover liberação';
+      btn.title = 'Remover desta lista';
       btn.addEventListener('click', () => {
-        configAtual.paginasSemBloqueioDireito = itens.filter((h) => h !== host);
-        salvarDireito();
-        renderizarDireito();
-        setStatus('Clique direito bloqueado novamente em ' + host, 'ok');
+        configAtual.paginasAutorizadas = itens.filter((h) => h !== host);
+        salvarPaginas();
+        renderizarPaginas();
+        setStatus(host + ' removido — TwoElve fica inativo nele (recarregue a aba).', 'ok');
       });
       linha.appendChild(btn);
       lista.appendChild(linha);
     });
-    if ($('direito-vazio')) $('direito-vazio').hidden = itens.length > 0;
+    if ($('paginas-vazio')) $('paginas-vazio').hidden = itens.length > 0;
   }
 
   function renderizarPaginasDesativadas() {
@@ -546,8 +541,8 @@
     setStatus('TwoElve DESATIVADO em ' + host + ' (recarregue a aba para aplicar)', 'ok');
   }
 
-  function adicionarDireito() {
-    const campo = $('direito-novo');
+  function adicionarPagina() {
+    const campo = $('paginas-novo');
     if (!campo) return;
     let host = (campo.value || '').trim().toLowerCase();
     if (!host) return;
@@ -557,13 +552,13 @@
     }
     host = host.replace(/^\/+|\/+$/g, '').split('/')[0];
     if (!host) { setStatus('Endereço inválido.', 'erro'); return; }
-    const itens = Array.isArray(configAtual.paginasSemBloqueioDireito) ? configAtual.paginasSemBloqueioDireito : [];
-    if (itens.indexOf(host) >= 0) { setStatus(host + ' já está liberado.', ''); return; }
-    configAtual.paginasSemBloqueioDireito = itens.concat([host]);
-    salvarDireito();
+    const itens = Array.isArray(configAtual.paginasAutorizadas) ? configAtual.paginasAutorizadas : [];
+    if (itens.indexOf(host) >= 0) { setStatus(host + ' já está na lista.', ''); return; }
+    configAtual.paginasAutorizadas = itens.concat([host]);
+    salvarPaginas();
     campo.value = '';
-    renderizarDireito();
-    setStatus('Clique direito original liberado em ' + host, 'ok');
+    renderizarPaginas();
+    setStatus(host + ' adicionado — TwoElve atua nele a partir do próximo carregamento da página.', 'ok');
   }
 
   function preencherForm() {
@@ -580,9 +575,7 @@
     $('config-saudacao-previa').checked = c.saudacaoPrevia === true;
     $('config-trocar-aba').checked = c.trocarAbaSaudacao !== false;
 
-    // clique direito: master + lista de páginas liberadas
-    if ($('config-direito')) $('config-direito').checked = c.desbloquearCliqueDireito !== false;
-    renderizarDireito();
+    renderizarPaginas();
     renderizarPaginasDesativadas();
     $('config-overlay').checked = c.autoOverlay !== false;
 
@@ -689,11 +682,11 @@
         configAtual.saudacaoPrevia = resAut.saudacaoPrevia === true;
         configAtual.trocarAbaSaudacao = resAut.trocarAbaSaudacao !== false;
 
-        // desbloqueio de colagem/clique direito (chaves próprias)
-        const resDir = await chrome.storage.local.get(['desbloquearColagem', 'desbloquearCliqueDireito', 'paginasSemBloqueioDireito']);
-        configAtual.desbloquearColagem = resDir.desbloquearColagem !== false;
-        configAtual.desbloquearCliqueDireito = resDir.desbloquearCliqueDireito !== false;
-        configAtual.paginasSemBloqueioDireito = Array.isArray(resDir.paginasSemBloqueioDireito) ? resDir.paginasSemBloqueioDireito : [];
+        // whitelist de páginas onde o TwoElve atua + páginas desativadas
+        const resDir = await chrome.storage.local.get(['twoelvePaginasAutorizadas', 'paginasDesativadas']);
+        configAtual.paginasAutorizadas = Array.isArray(resDir.twoelvePaginasAutorizadas) && resDir.twoelvePaginasAutorizadas.length
+          ? resDir.twoelvePaginasAutorizadas
+          : ['erp.elo.net.br'];
         configAtual.paginasDesativadas = Array.isArray(resDir.paginasDesativadas) ? resDir.paginasDesativadas : [];
       }
 
@@ -789,18 +782,10 @@
       salvarToggleAutomatizacao({ trocarAbaSaudacao: e.target.checked });
     });
 
-    // clique direito
-    if ($('config-direito')) {
-      $('config-direito').addEventListener('change', (e) => {
-        salvarDireito({ desbloquearCliqueDireito: e.target.checked });
-        setStatus(e.target.checked
-          ? 'TwoElve voltando a segurar o botão direito em todas as páginas (recarregue as abas já abertas).'
-          : 'TwoElve parou de mexer no botão direito (recarregue as abas já abertas).', 'ok');
-      });
-    }
-    if ($('direito-add')) $('direito-add').addEventListener('click', adicionarDireito);
-    if ($('direito-novo')) {
-      $('direito-novo').addEventListener('keydown', (e) => { if (e.key === 'Enter') adicionarDireito(); });
+    // páginas onde o TwoElve atua
+    if ($('paginas-add')) $('paginas-add').addEventListener('click', adicionarPagina);
+    if ($('paginas-novo')) {
+      $('paginas-novo').addEventListener('keydown', (e) => { if (e.key === 'Enter') adicionarPagina(); });
     }
     if ($('pagdesativ-add')) $('pagdesativ-add').addEventListener('click', adicionarPaginasDesativadas);
     if ($('pagdesativ-novo')) {

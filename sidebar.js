@@ -3,7 +3,11 @@
 // Comportamento: linha no topo, expande no hover
 // ==============================================
 
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     // se a extensão estiver desativada nesta página, não injeta toolbar
     if (window.TwoelvePagina && window.TwoelvePagina.desativada()) {
         try { console.log('[TwoElve] ⏸️ TwoElve desativado nesta página (' + window.TwoelvePagina.host() + ') — toolbar não injetada.'); } catch (e) {}

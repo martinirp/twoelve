@@ -2,7 +2,11 @@
 // CONFIG.JS - GERENCIADOR DE PERSONALIZAÇÃO E BACKUP
 // ==============================================
 
-(function() {
+(async function() {
+    if (window.TwoelvePaginas) {
+        await window.TwoelvePaginas.pronto;
+        if (!window.TwoelvePaginas.autorizada()) return;
+    }
     const DEFAULTS = {
         fonte: {
             familia: 'Inter',
