@@ -45,7 +45,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.action === 'twoelve-check-update') {
       // Verifica no GitHub se há versão mais nova publicada (máx. 1x a cada 30 min)
-      const branch = ((chrome.runtime.getManifest && chrome.runtime.getManifest().twoelveBranch) || 'main');
+      const branchRaw = ((chrome.runtime.getManifest && chrome.runtime.getManifest().twoelveBranch) || 'main');
+    const branch = branchRaw === 'use' ? 'main' : branchRaw;
       const local = (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || '0.0.0';
       chrome.storage.local.get(['twoelveUpdateInfo'], (res) => {
         const cache = res.twoelveUpdateInfo || {};
