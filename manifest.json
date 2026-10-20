@@ -57,8 +57,7 @@
         "https://elonet.native-infinity.com.br/*"
       ],
       "js": [
-        "paginas.js",
-        "call.js"
+        "paginas.js"
       ],
       "run_at": "document_end"
     }
