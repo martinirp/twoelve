@@ -348,6 +348,88 @@
         return (cells[0]?.textContent || '').trim().toLowerCase();
     }
 
+    // Normaliza texto para busca mais flexível (remove acentos, pontuação etc)
+    function normalizarEndereco(str) {
+        if (!str) return '';
+        return str
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // remove acentos
+            .replace(/[^a-z0-9\s]/g, ' ')   // remove pontuação
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    // Distância de Levenshtein para detectar erros de digitação
+    function distanciaLevenshtein(a, b) {
+        const s = normalizarEndereco(a);
+        const t = normalizarEndereco(b);
+        if (s === t) return 0;
+        const m = s.length;
+        const n = t.length;
+        if (m === 0) return n;
+        if (n === 0) return m;
+        const v0 = new Array(n + 1).fill(0);
+        const v1 = new Array(n + 1).fill(0);
+        for (let j = 0; j <= n; j++) v0[j] = j;
+        for (let i = 0; i < m; i++) {
+            v1[0] = i + 1;
+            for (let j = 0; j < n; j++) {
+                const custo = s[i] === t[j] ? 0 : 1;
+                v1[j + 1] = Math.min(
+                    v1[j] + 1,      // inserção
+                    v0[j + 1] + 1,  // deleção
+                    v0[j] + custo   // substituição
+                );
+            }
+            for (let j = 0; j <= n; j++) v0[j] = v1[j];
+        }
+        return v0[n];
+    }
+
+    // Verifica se os endereços são parecidos (fuzzy)
+    function enderecoCompativel(filtro, textoLinha) {
+        if (!filtro) return true;
+        const fNorm = normalizarEndereco(filtro);
+        const tNorm = normalizarEndereco(textoLinha);
+        if (!fNorm || !tNorm) return false;
+        if (tNorm === fNorm) return true;
+        if (tNorm.includes(fNorm) || fNorm.includes(tNorm)) return true;
+
+        // Se o filtro tem pelo menos 4 caracteres, tenta busca fuzzy
+        if (fNorm.length >= 4) {
+            const dist = distanciaLevenshtein(fNorm, tNorm);
+            const maxLen = Math.max(fNorm.length, tNorm.length);
+            if (maxLen === 0) return false;
+            const similaridade = 1 - (dist / maxLen);
+            // Threshold 0.82 funciona bem pra trocar 1-2 letras
+            if (similaridade >= 0.82) return true;
+        }
+
+        // Também verifica palavra por palavra (útil pra "RUA CATOLINO" vs "RUA CATULINO")
+        const palavrasFiltro = fNorm.split(' ').filter(p => p.length >= 3);
+        const palavrasTexto = tNorm.split(' ');
+        if (palavrasFiltro.length > 0) {
+            let acertos = 0;
+            for (let i = 0; i < palavrasFiltro.length; i++) {
+                const pf = palavrasFiltro[i];
+                for (let j = 0; j < palavrasTexto.length; j++) {
+                    const pt = palavrasTexto[j];
+                    if (pt.includes(pf) || pf.includes(pt)) { acertos++; break; }
+                    if (pf.length >= 4 && pt.length >= 4) {
+                        const d2 = distanciaLevenshtein(pf, pt);
+                        const max2 = Math.max(pf.length, pt.length);
+                        if (1 - (d2 / max2) >= 0.8) { acertos++; break; }
+                    }
+                }
+            }
+            if (acertos >= palavrasFiltro.length) return true;
+        }
+
+        return false;
+    }
+
     // Clicar no ícone de lápis (editar) de uma linha
     function clicarLapisLinha(row) {
         // Tenta encontrar qualquer elemento que seja botão de editar ou o próprio ícone do lápis
@@ -452,7 +534,7 @@
             console.log(`Linha ${rowIndex} texto extraído: "${textoLinha}"`);
 
             // Se não bate com o filtro, só avança pra próxima linha
-            if (!filtrarTodos && !textoLinha.includes(enderecoAntigo.trim().toLowerCase())) {
+            if (!filtrarTodos && !enderecoCompativel(enderecoAntigo, textoLinha)) {
                 console.log(`Linha ${rowIndex} ignorada (não corresponde ao filtro).`);
                 rowIndex++;
                 continue;
