@@ -605,6 +605,35 @@
         modalAtivo = modal;
         modal.abrir();
 
+        // Trava de segurança para prevenir que o modal seja fechado involuntariamente durante a execução
+        let processandoEnderecos = false;
+        const fecharNativo = modal.fechar.bind(modal);
+
+        modal.fechar = function(forcar = false) {
+            if (processandoEnderecos && !forcar) {
+                console.warn('[TwoElve] Fechamento do modal bloqueado: atualização de endereços em andamento.');
+                return;
+            }
+            window.removeEventListener('beforeunload', impedirSaida);
+            fecharNativo();
+        };
+
+        const impedirSaida = (e) => {
+            if (processandoEnderecos) {
+                e.preventDefault();
+                e.returnValue = 'Atualização de endereços em andamento. Deseja sair?';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', impedirSaida);
+
+        // Previne que cliques dentro do modal fechem a janela no modo lateral ou por propagação
+        if (modal.container) {
+            modal.container.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+
         const container = document.createElement('div');
         container.style.cssText = 'display: flex; flex-direction: column; gap: 16px;';
 
@@ -1055,9 +1084,11 @@
         // Botão "Pegar endereço da página"
         // ==============================================
         const btnPegar = document.createElement('button');
+        btnPegar.type = 'button';
         btnPegar.textContent = '📥 Pegar endereço da página';
         btnPegar.className = 'twoelve-button';
-        btnPegar.addEventListener('click', async () => {
+        btnPegar.addEventListener('click', async (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
             const lido = lerEnderecoDaPagina();
             if (!lido) { statusEl.textContent = '⚠️ Nenhum campo de endereço encontrado nesta página.'; return; }
             const algumPreenchido = Object.values(lido).some(v => v.length > 0);
@@ -1079,9 +1110,12 @@
         // Botão Confirmar
         // ==============================================
         const btnConfirmar = document.createElement('button');
+        btnConfirmar.type = 'button';
         btnConfirmar.textContent = '✅ Atualizar Endereços';
         btnConfirmar.className = 'twoelve-button-primary';
-        btnConfirmar.addEventListener('click', async () => {
+        btnConfirmar.addEventListener('click', async (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+
             const enderecoAntigo = endAntigoInput.value.trim();
             const novosDados = {
                 rua: campos.rua.value.trim(), numero: campos.numero.value.trim(),
@@ -1092,8 +1126,15 @@
             const algumPreenchido = Object.values(novosDados).some(v => v.length > 0);
             if (!algumPreenchido) { statusEl.textContent = '⚠️ Preencha ao menos um campo novo.'; return; }
 
+            // Ativa a trava de processamento para blindar o modal contra fechamentos
+            processandoEnderecos = true;
             btnConfirmar.disabled = true;
             btnConfirmar.textContent = '⏳ Processando...';
+            if (modal.closeBtn) {
+                modal.closeBtn.style.pointerEvents = 'none';
+                modal.closeBtn.style.opacity = '0.3';
+            }
+
             try {
                 const preenchidosDireto = await preencherFormularioDireto(novosDados, statusEl);
                 if (temListaDeEnderecos()) {
@@ -1106,8 +1147,13 @@
                     statusEl.textContent = '⚠️ Nenhum campo de endereço encontrado nesta página.';
                 }
             } finally {
+                processandoEnderecos = false;
                 btnConfirmar.disabled = false;
                 btnConfirmar.textContent = '✅ Atualizar Endereços';
+                if (modal.closeBtn) {
+                    modal.closeBtn.style.pointerEvents = 'auto';
+                    modal.closeBtn.style.opacity = '1';
+                }
             }
         });
         container.appendChild(btnConfirmar);
