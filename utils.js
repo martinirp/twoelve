@@ -372,68 +372,59 @@
 
         // Aplica cor visual em uma linha da tabela de endereços e suas células
         // Aplica cor visual na linha inteira (TR e todos os TDs) usando o data-id do ERP ou elemento direto
-    function pintarLinhaEndereco(rowOuDataId, estado) {
-        if (!rowOuDataId) return;
+        // Gerenciador dinâmico de estilos para as linhas da tabela de endereços do ERP
+    const estiloEnderecos = {
+        styleEl: null,
+        regras: {}, // mapa de id -> cor
 
-        let corFundo = '';
-        if (estado === 'cinza' || estado === 'mapeado') {
-            // Cinza claro suave antes de mudar
-            corFundo = '#E2E8F0';
-        } else if (estado === 'processando') {
-            // Destaque visual enquanto o modal do ERP está aberto / salvando
-            corFundo = '#BAE6FD';
-        } else if (estado === 'verde' || estado === 'sucesso') {
-            // Verde destacado que transforma a linha inteira (solicitado pelo usuário)
-            corFundo = '#7FFFD4';
-        } else if (estado === 'erro') {
-            corFundo = '#FECACA';
+        init() {
+            let el = document.getElementById('twoelve-endereco-styles');
+            if (!el) {
+                el = document.createElement('style');
+                el.id = 'twoelve-endereco-styles';
+                document.head.appendChild(el);
+            }
+            this.styleEl = el;
+            this.regras = {};
+            this.render();
+        },
+
+        definirCor(id, cor) {
+            if (!id || !cor) return;
+            this.regras[id] = cor;
+            this.render();
+
+            // Aplica também via JavaScript nos elementos existentes no DOM
+            const seletores = [
+                `tr.line[data-id="${id}"]`,
+                `tr.line[data-id="${id}"] td`,
+                `tr[data-id="${id}"]`,
+                `tr[data-id="${id}"] td`,
+                `tr[data-twoelve-id="${id}"]`,
+                `tr[data-twoelve-id="${id}"] td`
+            ].join(', ');
+
+            document.querySelectorAll(seletores).forEach(el => {
+                el.style.setProperty('background-color', cor, 'important');
+                el.style.setProperty('transition', 'background-color 0.25s ease');
+            });
+        },
+
+        render() {
+            if (!this.styleEl) return;
+            let css = '';
+            for (const [id, cor] of Object.entries(this.regras)) {
+                css += `
+                    tr.line[data-id="${id}"], tr.line[data-id="${id}"] td,
+                    tr[data-id="${id}"], tr[data-id="${id}"] td,
+                    tr[data-twoelve-id="${id}"], tr[data-twoelve-id="${id}"] td {
+                        background-color: ${cor} !important;
+                    }
+                `;
+            }
+            this.styleEl.textContent = css;
         }
-
-        if (!corFundo) return;
-
-        let dataId = null;
-        let rowEl = null;
-
-        if (typeof rowOuDataId === 'string' || typeof rowOuDataId === 'number') {
-            dataId = String(rowOuDataId);
-        } else if (rowOuDataId instanceof Element) {
-            rowEl = rowOuDataId;
-            dataId = rowEl.getAttribute('data-id') || rowEl.querySelector('[data-id]')?.getAttribute('data-id');
-        }
-
-        const alvos = new Set();
-
-        // 1. Prioridade máxima: seletor exato no ERP para a linha inteira e todos os TDs
-        // Exemplo: tr.line[data-id="50108"], tr.line[data-id="50108"] td
-        if (dataId) {
-            const seletorCompleto = `tr.line[data-id="${dataId}"], tr.line[data-id="${dataId}"] td, tr[data-id="${dataId}"], tr[data-id="${dataId}"] td, tr[data-id="${dataId}"] th`;
-            document.querySelectorAll(seletorCompleto).forEach(el => alvos.add(el));
-        }
-
-        // 2. Elemento TR direto e todos os seus filhos TD/TH caso data-id não tenha sido localizado
-        if (rowEl) {
-            alvos.add(rowEl);
-            rowEl.querySelectorAll('td, th').forEach(el => alvos.add(el));
-        }
-
-        // 3. Aplica a cor com !important em todos os elementos da linha inteira
-        alvos.forEach(el => {
-            el.style.setProperty('background-color', corFundo, 'important');
-            el.style.setProperty('transition', 'background-color 0.25s ease');
-        });
-    }
-
-    // Obtém o identificador oficial data-id do ERP (ou chave estável)
-    function obterChaveLinhaEndereco(row, indexPadrao) {
-        if (!row) return 'idx:' + indexPadrao;
-        const dataId = row.getAttribute('data-id') || row.querySelector('[data-id]')?.getAttribute('data-id');
-        if (dataId) return String(dataId);
-        if (row.id) return 'id:' + row.id;
-        const btn = row.querySelector('.btn-editar, [class*="btn-editar"], a[href*="edit"], i.icon-pencil, i.fa-pencil');
-        const link = btn ? (btn.closest('a') || btn) : null;
-        if (link && link.getAttribute('href')) return 'href:' + link.getAttribute('href');
-        return 'idx:' + indexPadrao;
-    }
+    };
 
     // Normaliza texto para comparação de endereços sem travar por acento
     function normalizarTextoEndereco(str) {
@@ -446,54 +437,56 @@
             .trim();
     }
 
-    // Função principal: faz o mapeamento prévio, pinta a linha inteira de cinza e depois passa para verde (#7FFFD4)
+    // Função principal: identifica todos os endereços do filtro, marca eles com cinza, e então vai mudando para verde
     async function processarEnderecosNaPagina(enderecoAntigo, novosDados, statusEl) {
-        console.log('--- INICIANDO PROCESSAMENTO DE ENDEREÇOS COM MAPEAMENTO COMPLETO ---');
-        console.log('Filtro (antigo):', enderecoAntigo);
-        console.log('Novos dados:', novosDados);
+        console.log('--- INICIANDO MAPEAMENTO E ATUALIZAÇÃO DE ENDEREÇOS ---');
+        console.log('Filtro informado:', enderecoAntigo);
+        console.log('Novos dados a preencher:', novosDados);
 
         const filtrarTodos = enderecoAntigo.trim().toUpperCase() === 'TODOS';
-        
-        // Função para obter linhas atualizadas da tabela do ERP
-        const getRows = () => {
-            const rows = Array.from(document.querySelectorAll('table tbody tr.line, table tbody tr'));
-            return rows.filter(r => r.getAttribute('data-id') || r.querySelector('a.btn-editar, [class*="btn-editar"], i.icon-pencil, i.fa-pencil'));
-        };
+        const filtroNorm = normalizarTextoEndereco(enderecoAntigo);
 
-        let initialRows = getRows();
-        if (initialRows.length === 0) {
-            console.warn('Nenhuma linha de endereço com botão editar foi encontrada.');
+        // Inicializa o gerenciador de estilos
+        estiloEnderecos.init();
+
+        // 1. Busca todas as linhas de endereço existentes na tabela
+        const todasAsLinhas = Array.from(document.querySelectorAll('table tbody tr.line, table tbody tr'))
+            .filter(r => r.getAttribute('data-id') || r.querySelector('a.btn-editar, [class*="btn-editar"], i.icon-pencil, i.fa-pencil'));
+
+        if (todasAsLinhas.length === 0) {
+            console.warn('Nenhuma linha de endereço com botão editar foi encontrada na página.');
             statusEl.textContent = '⚠️ Nenhum endereço com botão de editar encontrado na página.';
             return;
         }
 
-        // ==========================================
-        // ETAPA 1: MAPEAMENTO PRÉVIO E COR CINZA CLARO NA LINHA INTEIRA
-        // ==========================================
-        statusEl.textContent = '🔍 Mapeando endereços compatíveis...';
+        // =========================================================================
+        // PASSO 1: IDENTIFICAR TODOS OS ENDEREÇOS DO FILTRO
+        // =========================================================================
+        statusEl.textContent = '🔍 Identificando endereços do filtro...';
         const mapeados = [];
-        const filtroNorm = normalizarTextoEndereco(enderecoAntigo);
 
-        for (let i = 0; i < initialRows.length; i++) {
-            const row = initialRows[i];
+        for (let i = 0; i < todasAsLinhas.length; i++) {
+            const row = todasAsLinhas[i];
             const textoLinha = lerEnderecoLinha(row);
             const textoNorm = normalizarTextoEndereco(textoLinha);
-            const chave = obterChaveLinhaEndereco(row, i);
 
             const match = filtrarTodos ||
                           textoLinha.includes(enderecoAntigo.trim().toLowerCase()) ||
                           (filtroNorm && textoNorm.includes(filtroNorm));
 
             if (match) {
+                // Obtém o data-id do ERP ou atribui identificador fixo
+                let id = row.getAttribute('data-id');
+                if (!id) {
+                    id = 'temp_' + i;
+                    row.setAttribute('data-twoelve-id', id);
+                }
+
                 mapeados.push({
+                    id: String(id),
                     indexOriginal: i,
-                    chave: chave,
-                    textoOriginal: textoLinha
+                    texto: textoLinha
                 });
-                // Troca a cor da linha inteira para cinza claro antes de mudar
-                pintarLinhaEndereco(chave, 'mapeado');
-                pintarLinhaEndereco(row, 'mapeado');
-                console.log(`[Mapeamento] Linha ${i} (data-id/chave: ${chave}) mapeada (cinza claro): "${textoLinha}"`);
             }
         }
 
@@ -502,67 +495,52 @@
             return;
         }
 
-        statusEl.textContent = `📋 ${mapeados.length} endereço(s) mapeado(s). Iniciando atualização...`;
-        await wait(600); // Pausa breve para o usuário visualizar todas as linhas mapeadas em cinza claro
+        // =========================================================================
+        // PASSO 2: MARCAR TODOS OS IDENTIFICADOS COM CINZA CLARO
+        // (Faz isso uma única vez para todos os que foram identificados)
+        // =========================================================================
+        mapeados.forEach(item => {
+            estiloEnderecos.definirCor(item.id, '#E2E8F0');
+        });
 
-        // ==========================================
-        // ETAPA 2: PROCESSAMENTO SEQUENCIAL E LINHAS INTEIRAS EM VERDE
-        // ==========================================
-        const concluidos = new Set();
+        statusEl.textContent = `📋 ${mapeados.length} endereço(s) marcado(s) em cinza. Iniciando alterações...`;
+        await wait(600); // Pausa para visualização das linhas marcadas em cinza
+
+        // =========================================================================
+        // PASSO 3: IR MUDANDO TODOS QUE FORAM MARCADOS (E PASSAR PARA VERDE #7FFFD4)
+        // (Sem remarcar os outros! Cada um muda para verde assim que é concluído)
+        // =========================================================================
         let processados = 0;
 
-        // Função auxiliar para reaplicar as cores nas linhas da tabela
-        const reaplicarCores = () => {
-            // 1. Todas as linhas já concluídas recebem VERDE (#7FFFD4) na linha inteira
-            concluidos.forEach(id => {
-                pintarLinhaEndereco(id, 'verde');
-            });
-            // 2. Todas as linhas mapeadas que ainda não foram concluídas permanecem em CINZA
-            mapeados.forEach(item => {
-                if (!concluidos.has(item.chave)) {
-                    pintarLinhaEndereco(item.chave, 'mapeado');
-                }
-            });
-        };
-
         for (let m = 0; m < mapeados.length; m++) {
-            const itemMapeado = mapeados[m];
+            const item = mapeados[m];
             statusEl.textContent = `🔄 Atualizando ${m + 1} de ${mapeados.length} endereço(s)...`;
 
-            // O ERP pode recarregar a tabela via AJAX. Buscamos as linhas atualizadas no DOM:
-            const currentRows = getRows();
-
-            // Re-aplica as cores em todas as linhas da tabela (garante que todas as anteriores continuem verdes)
-            reaplicarCores();
-
-            // Localiza a linha correspondente a este item mapeado
-            let row = currentRows.find((r, idx) => obterChaveLinhaEndereco(r, idx) === itemMapeado.chave);
-            if (!row && itemMapeado.indexOriginal < currentRows.length) {
-                row = currentRows[itemMapeado.indexOriginal];
+            // Localiza a linha correspondente no DOM atual pelo id
+            let row = document.querySelector(`tr[data-id="${item.id}"], tr.line[data-id="${item.id}"], tr[data-twoelve-id="${item.id}"]`);
+            if (!row) {
+                const linhasAtuais = Array.from(document.querySelectorAll('table tbody tr.line, table tbody tr'));
+                if (item.indexOriginal < linhasAtuais.length) {
+                    row = linhasAtuais[item.indexOriginal];
+                }
             }
 
             if (!row) {
-                console.warn(`Linha correspondente ao item ${m + 1} (chave: ${itemMapeado.chave}) não encontrada no DOM.`);
+                console.warn(`Linha com id ${item.id} não encontrada no DOM.`);
                 continue;
             }
 
-            // Destaca a linha inteira atual em processamento
-            pintarLinhaEndereco(itemMapeado.chave, 'processando');
-            pintarLinhaEndereco(row, 'processando');
-
-            // Clica no lápis para abrir o modal de edição
+            // Clica no botão de editar da linha
             const clicou = clicarLapisLinha(row);
             if (!clicou) {
-                console.warn(`Não foi possível clicar no botão editar do item ${m + 1}`);
-                pintarLinhaEndereco(itemMapeado.chave, 'erro');
+                console.warn(`Não foi possível clicar no botão editar do item id ${item.id}`);
                 continue;
             }
 
-            console.log(`Aguardando modal ERP abrir para item ${m + 1}...`);
+            // Aguarda o modal do ERP abrir
             const modal = await aguardarModalERP(5000);
             if (!modal) {
-                console.warn(`Modal não abriu no tempo esperado para item ${m + 1}`);
-                pintarLinhaEndereco(itemMapeado.chave, 'erro');
+                console.warn(`Modal do ERP não abriu a tempo para o item id ${item.id}`);
                 continue;
             }
 
@@ -570,15 +548,13 @@
             let tentativasCarregamento = 0;
             while (tentativasCarregamento < 25) {
                 const streetField = document.querySelector('#PeopleAddressStreet');
-                if (streetField && streetField.value.trim().length > 0) {
-                    break;
-                }
+                if (streetField && streetField.value.trim().length > 0) break;
                 await wait(200);
                 tentativasCarregamento++;
             }
             await wait(500);
 
-            // Preenche os campos solicitados (incluindo o CEP)
+            // Preenche os campos solicitados
             if (novosDados.rua)        await preencherCampoERP('#PeopleAddressStreet',          novosDados.rua);
             if (novosDados.numero)     await preencherCampoERP('#PeopleAddressNumber',           novosDados.numero);
             if (novosDados.bairro)     await preencherCampoERP('#PeopleAddressNeighborhood',     novosDados.bairro);
@@ -602,31 +578,18 @@
             if (confirmarBtn) {
                 confirmarBtn.click();
                 await aguardarModalFechar(5000);
-                await wait(1000); // aguarda a tabela recarregar com ajax
+                await wait(1000); // aguarda salvar e fechar
 
-                // Marca a chave/data-id como concluída
-                concluidos.add(itemMapeado.chave);
-
-                // Re-aplica as cores imediatamente: a linha inteira deste item e de todos os anteriores ficam em VERDE (#7FFFD4)
-                reaplicarCores();
-                pintarLinhaEndereco(itemMapeado.chave, 'verde');
-
+                // PASSA ESTE ITEM CONCLUÍDO PARA VERDE (#7FFFD4)!
+                // Os outros que ainda não foram mexidos permanecem intocados com o cinza deles.
+                estiloEnderecos.definirCor(item.id, '#7FFFD4');
                 processados++;
             } else {
                 console.warn('Botão Confirmar não encontrado no modal ERP');
                 document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                 await aguardarModalFechar(3000);
-                pintarLinhaEndereco(itemMapeado.chave, 'erro');
             }
         }
-
-        // ==========================================
-        // FINALIZAÇÃO: TODAS AS LINHAS CONCLUÍDAS 100% VERDES
-        // ==========================================
-        reaplicarCores();
-        concluidos.forEach(id => {
-            pintarLinhaEndereco(id, 'verde');
-        });
 
         statusEl.textContent = `✅ ${processados} de ${mapeados.length} endereço(s) atualizado(s) com sucesso!`;
     }
