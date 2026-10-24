@@ -11,35 +11,13 @@
     // ==============================================
     // 0. DESBLOQUEAR COLA / CLIQUE DIREITO (todas as páginas)
     // ==============================================
-    // Muitas páginas — principalmente as de ROTEADOR (Huawei/FiberHome e afins) —
-    // bloqueiam COLAR senha e o menu de botão direito. Esta seção desbloqueia isso
-    // nativamente, em qualquer site (a extensão roda em <all_urls>):
-    //   - paste/copy/cut/dragstart/selectstart: a página nunca mais consegue bloquear;
-    //   - contextmenu (botão direito): liberado em todo lugar, EXCETO dentro da UI da
-    //     própria extensão (.twoelve-*), onde o botão direito continua abrindo a
-    //     edição dos botões (recursos da extensão preservados);
-    //   - campos de texto ficam SEMPRE selecionáveis (copiar uma senha gigante).
-    // Por que funciona: o listener roda na fase de CAPTURA no nível mais alto (window),
-    // ANTES de qualquer handler da página — inclusive atributos onpaste/oncontextmenu
-    // e handlers de janela. Para garantir essa prioridade, este arquivo sobe em
-    // "document_start" no manifest (registra-se antes de qualquer script da página).
-    // Padrão: LIGADO. Pode desligar via Configuração/storage
-    // (desbloquearColagem / desbloquearCliqueDireito = false).
-    // Páginas LIBERADAS: em algumas o menu de botão direito ORIGINAL do site é
-    // obrigatório (o TwoElve segura o evento e mostra o menu do navegador).
-    // A lista paginasSemBloqueioDireito guarda os domínios liberados — dá pra
-    // alternar direto pelo modal do Utils (ícone da barra) e gerenciar em
-    // Configurações → 🖱️ Clique direito.
     (function desbloquearInteracoes() {
-        // se a extensão estiver desativada nesta página, não bloqueia NADA
         if (window.TwoelvePagina && window.TwoelvePagina.desativada()) {
             try { console.log('[TwoElve] ⏸️ Página desativada (' + window.TwoelvePagina.host() + ') — extensão inativa aqui. Colar/clique direito normais.'); } catch (e) {}
             return;
         }
         const DENTRO_DA_UI = '.twoelve-modal-container, .twoelve-wrapper, .twoelve-abas';
         const bloquear = (e) => {
-            // impede QUALQUER handler da página (captura/alvo/bolha e atributos on*)
-            // de ver o evento — o comportamento padrão (colar/abrir menu) segue normal
             e.stopImmediatePropagation();
             e.stopPropagation();
         };
@@ -52,7 +30,6 @@
         let colagemAtiva = null;
         let direitoAtivo = null;
 
-        // ---------- páginas desativadas (extensão INATIVA nessa página) ----------
         const CHAVE_PAGINAS_DESATIVADAS = 'paginasDesativadas';
         let paginasDesativadasLista = [];
 
@@ -87,17 +64,16 @@
                 if (i >= 0) atual.splice(i, 1); else atual.push(h);
                 paginasDesativadasLista = atual;
                 try { await chrome.storage.local.set({ [CHAVE_PAGINAS_DESATIVADAS]: atual }); } catch (e) {}
-                return i < 0; // true = desativou agora
+                return i < 0;
             }
         };
 
-        // ---------- páginas liberadas (menu original do site) ----------
         const CHAVE_LISTA = 'paginasSemBloqueioDireito';
         const hostDaPagina = () => {
             try { return String(location.hostname || '').toLowerCase(); } catch (e) { return ''; }
         };
-        let direitoGlobal = true;   //TwoElve segura o botão direito em todas as páginas
-        let listaLivre = [];       // domínios em que o site fica com o menu dele
+        let direitoGlobal = true;
+        let listaLivre = [];
 
         const paginaLiberada = () => {
             const h = hostDaPagina();
@@ -133,7 +109,6 @@
             direitoAtivo = null;
         };
 
-        // aplica IMEDIATAMENTE (padrão ON) — nenhuma janela para o site bloquear
         ligarColagem();
         ligarDireito();
         try {
@@ -143,7 +118,6 @@
             (document.head || document.documentElement).appendChild(style);
         } catch (e) {}
 
-        // se o usuário desativou explicitamente na Configuração, ajusta após ler o storage
         const aplicar = (res) => {
             const colagemOn = res.desbloquearColagem !== false;
             direitoGlobal = res.desbloquearCliqueDireito !== false;
@@ -158,7 +132,6 @@
         if (p && p.then) { p.then(aplicar, aplicar); }
         else { chrome.storage.local.get(CHAVES, aplicar); }
 
-        // muda de página liberada/vista ao vivo (toggle no Utils ou nas Configurações)
         try {
             chrome.storage.onChanged.addListener((mudancas, area) => {
                 if (area !== 'local') return;
@@ -168,7 +141,6 @@
             });
         } catch (e) {}
 
-        // API usada pelo modal do Utils e (opcionalmente) por atalhos
         window.TwoelveDireito = {
             chave: hostDaPagina,
             liberada: paginaLiberada,
@@ -193,14 +165,14 @@
     // 1. VARIÁVEIS
     // ==============================================
     let modalAtivo = null;
-    
+
     // ==============================================
     // 2. FUNÇÕES AUXILIARES (MANTIDAS)
     // ==============================================
     function wait(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
-    
+
     async function fillField(inputField, value) {
         if (!inputField) return;
         try {
@@ -217,18 +189,17 @@
             console.error('Erro ao preencher campo:', error);
         }
     }
-    
+
     // ==============================================
     // 3. FUNÇÕES DE LOGIN (MANTIDAS)
     // ==============================================
     async function login() {
         console.log('Função login chamada');
-        
-        // Huawei Descoberto
+
         const huawey_descoberto_user = document.querySelector('#txt_Username');
         const huawey_descoberto_pass = document.querySelector('#txt_Password');
         const huawey_descoberto_login = document.querySelector('#button');
-        
+
         if (huawey_descoberto_user && huawey_descoberto_pass) {
             console.log('Encontrou campos Huawei Descoberto');
             await fillField(huawey_descoberto_user, 'elonet');
@@ -236,23 +207,21 @@
             huawey_descoberto_login.click();
             return;
         }
-        
-        // Huawei
+
         const huaweiPasswordField = document.querySelector('#userpassword_ctrl');
         const huaweiLoginButton = document.querySelector('#loginbtn.loginbtn.common_button_long');
-        
+
         if (huaweiPasswordField && huaweiLoginButton) {
             console.log('Encontrou campos Huawei');
             await fillField(huaweiPasswordField, 'elonet3005');
             huaweiLoginButton.click();
             return;
         }
-        
-        // FiberHome
+
         const fiberHomeUserField = document.querySelector('input#User[name="User"][type="text"]');
         const fiberHomePasswordField = document.querySelector('input#Passwd[name="Passwd"][type="password"]');
         const fiberHomeLoginButton = document.querySelector('input[type="submit"]');
-        
+
         if (fiberHomeUserField && fiberHomePasswordField && fiberHomeLoginButton) {
             console.log('Encontrou campos FiberHome');
             await fillField(fiberHomeUserField, 'admin');
@@ -269,24 +238,24 @@
         }
         console.log('Nenhum formulário de login reconhecido');
     }
-    
+
     async function checkLogin() {
         console.log('Função checkLogin chamada');
-        
+
         const huaweiPasswordField = document.querySelector('#userpassword_ctrl');
         const huaweiLoginButton = document.querySelector('#loginbtn.loginbtn.common_button_long');
-        
+
         if (huaweiPasswordField && huaweiLoginButton) {
             console.log('Encontrou campos Huawei');
             await fillField(huaweiPasswordField, 'elonet3005');
             huaweiLoginButton.click();
             return;
         }
-        
+
         const fiberHomeUserField = document.querySelector('input#User[name="User"][type="text"]');
         const fiberHomePasswordField = document.querySelector('input#Passwd[name="Passwd"][type="password"]');
         const fiberHomeLoginButton = document.querySelector('input[type="submit"]');
-        
+
         if (fiberHomeUserField && fiberHomePasswordField && fiberHomeLoginButton) {
             console.log('Encontrou campos FiberHome');
             await fillField(fiberHomeUserField, 'admin');
@@ -303,12 +272,11 @@
         }
         console.log('Nenhum formulário de login reconhecido');
     }
-    
+
     // ==============================================
     // 4. MODAL ENDEREÇO - Percorre a lista da página
     // ==============================================
 
-    // Preenche um campo dentro do modal nativo do ERP e dispara eventos
     async function preencherCampoERP(selector, value) {
         if (!value) return;
         const el = document.querySelector(selector);
@@ -316,11 +284,10 @@
             console.error(`❌ Campo não encontrado: ${selector}`);
             return;
         }
-        
+
         console.log(`✅ Campo encontrado: ${selector}. Inserindo valor: "${value}"`);
         el.focus();
-        
-        // Muitos frameworks (React, Vue) ignoram el.value direto. Usamos o setter nativo.
+
         const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set ||
                             Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
         const prototype = Object.getPrototypeOf(el);
@@ -340,120 +307,29 @@
         await wait(80);
     }
 
-    // Lê o texto de endereço de uma linha da tabela
     function lerEnderecoLinha(row) {
         const cells = row.querySelectorAll('td');
         if (!cells || cells.length < 2) return '';
-        // Primeira célula normalmente é o endereço+número
         return (cells[0]?.textContent || '').trim().toLowerCase();
     }
 
-    // Normaliza texto para busca mais flexível (remove acentos, pontuação etc)
-    function normalizarEndereco(str) {
-        if (!str) return '';
-        return str
-            .toString()
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // remove acentos
-            .replace(/[^a-z0-9\s]/g, ' ')   // remove pontuação
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    // Distância de Levenshtein para detectar erros de digitação
-    function distanciaLevenshtein(a, b) {
-        const s = normalizarEndereco(a);
-        const t = normalizarEndereco(b);
-        if (s === t) return 0;
-        const m = s.length;
-        const n = t.length;
-        if (m === 0) return n;
-        if (n === 0) return m;
-        const v0 = new Array(n + 1).fill(0);
-        const v1 = new Array(n + 1).fill(0);
-        for (let j = 0; j <= n; j++) v0[j] = j;
-        for (let i = 0; i < m; i++) {
-            v1[0] = i + 1;
-            for (let j = 0; j < n; j++) {
-                const custo = s[i] === t[j] ? 0 : 1;
-                v1[j + 1] = Math.min(
-                    v1[j] + 1,      // inserção
-                    v0[j + 1] + 1,  // deleção
-                    v0[j] + custo   // substituição
-                );
-            }
-            for (let j = 0; j <= n; j++) v0[j] = v1[j];
-        }
-        return v0[n];
-    }
-
-    // Verifica se os endereços são parecidos (fuzzy)
-    function enderecoCompativel(filtro, textoLinha) {
-        if (!filtro) return true;
-        const fNorm = normalizarEndereco(filtro);
-        const tNorm = normalizarEndereco(textoLinha);
-        if (!fNorm || !tNorm) return false;
-        if (tNorm === fNorm) return true;
-        if (tNorm.includes(fNorm) || fNorm.includes(tNorm)) return true;
-
-        // Se o filtro tem pelo menos 4 caracteres, tenta busca fuzzy
-        if (fNorm.length >= 4) {
-            const dist = distanciaLevenshtein(fNorm, tNorm);
-            const maxLen = Math.max(fNorm.length, tNorm.length);
-            if (maxLen === 0) return false;
-            const similaridade = 1 - (dist / maxLen);
-            // Threshold 0.82 funciona bem pra trocar 1-2 letras
-            if (similaridade >= 0.82) return true;
-        }
-
-        // Também verifica palavra por palavra (útil pra "RUA CATOLINO" vs "RUA CATULINO")
-        const palavrasFiltro = fNorm.split(' ').filter(p => p.length >= 3);
-        const palavrasTexto = tNorm.split(' ');
-        if (palavrasFiltro.length > 0) {
-            let acertos = 0;
-            for (let i = 0; i < palavrasFiltro.length; i++) {
-                const pf = palavrasFiltro[i];
-                for (let j = 0; j < palavrasTexto.length; j++) {
-                    const pt = palavrasTexto[j];
-                    if (pt.includes(pf) || pf.includes(pt)) { acertos++; break; }
-                    if (pf.length >= 4 && pt.length >= 4) {
-                        const d2 = distanciaLevenshtein(pf, pt);
-                        const max2 = Math.max(pf.length, pt.length);
-                        if (1 - (d2 / max2) >= 0.8) { acertos++; break; }
-                    }
-                }
-            }
-            if (acertos >= palavrasFiltro.length) return true;
-        }
-
-        return false;
-    }
-
-    // Clicar no ícone de lápis (editar) de uma linha
     function clicarLapisLinha(row) {
-        // Tenta encontrar qualquer elemento que seja botão de editar ou o próprio ícone do lápis
         const lapiz = row.querySelector('.btn-editar') || row.querySelector('i.icon-pencil, i.fa-pencil');
         if (lapiz) {
             const clicavel = lapiz.closest('a, button, [class*="btn-editar"]') || lapiz;
             console.log('Clicando no botão de editar da linha:', clicavel);
-            
-            // Tenta o clique nativo e os eventos simulados
             clicavel.click();
             clicavel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
             clicavel.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
             clicavel.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-            
             return true;
         }
         console.warn('Botão de editar não encontrado na linha:', row);
         return false;
     }
 
-    // Aguarda o modal nativo #modalFormAddress abrir (jQuery UI dialog)
     function aguardarModalERP(maxMs = 5000) {
         return new Promise(resolve => {
-            // O modal é um jQuery UI dialog: div#modalFormAddress fica dentro de div.ui-dialog
             const check = () => {
                 const modal = document.querySelector('#modalFormAddress');
                 if (!modal) return null;
@@ -474,7 +350,6 @@
         });
     }
 
-    // Aguarda o modal fechar
     function aguardarModalFechar(maxMs = 5000) {
         return new Promise(resolve => {
             const check = () => {
@@ -495,14 +370,13 @@
         });
     }
 
-    // Função principal: abre modal de cada endereço, preenche e confirma
         // Aplica cor visual em uma linha da tabela de endereços e suas células
     function pintarLinhaEndereco(row, estado) {
         if (!row) return;
         let bg = '';
         let border = '';
         if (estado === 'cinza' || estado === 'mapeado') {
-            // Cinza claro suave indicando que foi mapeado para alteração
+            // Cinza claro suave indicando mapeamento prévio antes de alterar
             bg = '#f1f5f9';
             border = '1px solid #cbd5e1';
         } else if (estado === 'processando') {
@@ -519,7 +393,7 @@
         }
 
         row.style.setProperty('background-color', bg, 'important');
-        row.style.setProperty('transition', 'background-color 0.3s ease, border 0.3s ease');
+        row.style.setProperty('transition', 'background-color 0.3s ease, outline 0.3s ease');
         if (border) row.style.setProperty('outline', border, 'important');
 
         const tds = row.querySelectorAll('td');
@@ -540,17 +414,26 @@
         return 'idx:' + indexPadrao;
     }
 
-    // Função principal: faz o mapeamento prévio, pinta de cinza e, após alterar, passa para verde
+    // Normaliza texto para comparação de endereços sem travar por acento
+    function normalizarTextoEndereco(str) {
+        if (!str) return '';
+        return str
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim();
+    }
+
+    // Função principal: faz o mapeamento prévio, pinta de cinza claro e, após mudar, passa para verde
     async function processarEnderecosNaPagina(enderecoAntigo, novosDados, statusEl) {
         console.log('--- INICIANDO PROCESSAMENTO DE ENDEREÇOS COM MAPEAMENTO ---');
         console.log('Filtro (antigo):', enderecoAntigo);
         console.log('Novos dados:', novosDados);
 
         const filtrarTodos = enderecoAntigo.trim().toUpperCase() === 'TODOS';
-        
-        // Função para obter linhas atualizadas do DOM que possuem botão de editar
         const getRows = () => Array.from(document.querySelectorAll('table tbody tr')).filter(r => r.querySelector('a.btn-editar') || r.querySelector('i.icon-pencil, i.fa-pencil'));
-        
+
         let initialRows = getRows();
         if (initialRows.length === 0) {
             console.warn('Nenhuma linha de endereço com botão editar foi encontrada.');
@@ -563,13 +446,19 @@
         // ==========================================
         statusEl.textContent = '🔍 Mapeando endereços compatíveis...';
         const mapeados = [];
+        const filtroNorm = normalizarTextoEndereco(enderecoAntigo);
 
         for (let i = 0; i < initialRows.length; i++) {
             const row = initialRows[i];
             const textoLinha = lerEnderecoLinha(row);
+            const textoNorm = normalizarTextoEndereco(textoLinha);
             const chave = obterChaveLinhaEndereco(row, i);
 
-            if (filtrarTodos || enderecoCompativel(enderecoAntigo, textoLinha)) {
+            const match = filtrarTodos ||
+                          textoLinha.includes(enderecoAntigo.trim().toLowerCase()) ||
+                          (filtroNorm && textoNorm.includes(filtroNorm));
+
+            if (match) {
                 mapeados.push({
                     indexOriginal: i,
                     chave: chave,
@@ -587,7 +476,7 @@
         }
 
         statusEl.textContent = `📋 ${mapeados.length} endereço(s) mapeado(s). Iniciando atualização...`;
-        await wait(600); // Pausa breve para o usuário visualizar o mapeamento em cinza claro
+        await wait(600); // Pausa breve para o usuário visualizar todos os itens mapeados em cinza claro
 
         // ==========================================
         // ETAPA 2: PROCESSAMENTO SEQUENCIAL E COR VERDE
@@ -599,7 +488,7 @@
             const itemMapeado = mapeados[m];
             statusEl.textContent = `🔄 Atualizando ${m + 1} de ${mapeados.length} endereço(s)...`;
 
-            // O ERP pode recarregar a tabela via AJAX. Buscamos as linhas atuais do DOM:
+            // O ERP pode recarregar a tabela via AJAX. Buscamos as linhas atualizadas no DOM:
             const currentRows = getRows();
 
             // Re-aplica as cores já estabelecidas nas linhas da tabela atualizada
@@ -654,11 +543,12 @@
             }
             await wait(500);
 
-            // Preenche os campos solicitados
+            // Preenche os campos solicitados (incluindo o CEP do novo arquivo)
             if (novosDados.rua)        await preencherCampoERP('#PeopleAddressStreet',          novosDados.rua);
             if (novosDados.numero)     await preencherCampoERP('#PeopleAddressNumber',           novosDados.numero);
             if (novosDados.bairro)     await preencherCampoERP('#PeopleAddressNeighborhood',     novosDados.bairro);
             if (novosDados.cidade)     await preencherCampoERP('#PeopleAddressCity',             novosDados.cidade);
+            if (novosDados.cep)        await preencherCampoERP('#PeopleAddressPostalCode',       novosDados.cep);
             if (novosDados.referencia) await preencherCampoERP('#PeopleAddressAddressReference', novosDados.referencia);
 
             // Clica em Confirmar
@@ -748,20 +638,156 @@
             letter-spacing: 0.5px;
         `;
 
-        // Info
+        // ==============================================
+        // Parser / montador
+        // ==============================================
+        function parseEnderecoCompleto(texto) {
+            const resultado = { rua: '', numero: '', bairro: '', cidade: '', cep: '', referencia: '' };
+            if (!texto) return resultado;
+            const pedacos = String(texto).split(',').map(p => p.trim());
+            const ordem = ['rua', 'numero', 'bairro', 'cidade', 'cep', 'referencia'];
+            ordem.forEach((campo, i) => {
+                if (i < pedacos.length && pedacos[i] !== '') resultado[campo] = pedacos[i];
+            });
+            return resultado;
+        }
+        function montarEnderecoCompleto(campos) {
+            return [
+                campos.rua.value.trim(),
+                campos.numero.value.trim(),
+                campos.bairro.value.trim(),
+                campos.cidade.value.trim(),
+                campos.cep.value.trim(),
+                campos.referencia.value.trim()
+            ].join(' , ');
+        }
+
+        // ==============================================
+        // APIs de CEP (ViaCEP)
+        // ==============================================
+        async function cepParaEndereco(cep) {
+            const limpo = String(cep || '').replace(/\D/g, '');
+            if (limpo.length !== 8) return null;
+            try {
+                const resp = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+                if (!resp.ok) return null;
+                const data = await resp.json();
+                if (data.erro) return null;
+                return {
+                    cep: limpo,
+                    rua: data.logradouro || '',
+                    bairro: data.bairro || '',
+                    cidade: data.localidade || '',
+                    uf: data.uf || ''
+                };
+            } catch (e) {
+                console.error('[TwoElve] cepParaEndereco:', e);
+                return null;
+            }
+        }
+
+        async function enderecoParaCep(uf, cidade, rua) {
+            if (!uf || String(uf).length !== 2 || !cidade || !rua) return null;
+            try {
+                const url = `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(cidade)}/${encodeURIComponent(rua)}/json/`;
+                const resp = await fetch(url);
+                if (!resp.ok) return null;
+                const data = await resp.json();
+                if (!Array.isArray(data) || data.length === 0) return null;
+                return data.map(d => ({
+                    cep: d.cep, rua: d.logradouro, bairro: d.bairro, cidade: d.localidade, uf: d.uf
+                }));
+            } catch (e) {
+                console.error('[TwoElve] enderecoParaCep:', e);
+                return null;
+            }
+        }
+
+        // ==============================================
+        // Preenche formulário direto
+        // ==============================================
+        async function preencherFormularioDireto(novosDados, statusEl) {
+            const MAPA = {
+                rua: '#PersonStreet', numero: '#PersonNumber', bairro: '#PersonNeighborhood',
+                cidade: '#PersonCity', cep: null, referencia: '#PersonAddressReference'
+            };
+            let preenchidos = 0;
+            for (const [campo, seletor] of Object.entries(MAPA)) {
+                if (!seletor) continue;
+                if (!novosDados[campo]) continue;
+                const el = document.querySelector(seletor);
+                if (!el) continue;
+                await preencherCampoERP(seletor, novosDados[campo]);
+                preenchidos++;
+            }
+            if (preenchidos > 0) {
+                statusEl.textContent = `✅ ${preenchidos} campo(s) preenchido(s) no formulário direto.`;
+            }
+            return preenchidos;
+        }
+
+        // ==============================================
+        // Lê endereço da página
+        // ==============================================
+        function lerEnderecoDaPagina() {
+            const GRUPOS = [
+                {
+                    rua: '#PersonStreet', numero: '#PersonNumber', bairro: '#PersonNeighborhood',
+                    cidade: '#PersonCity', cep: null, referencia: '#PersonAddressReference'
+                },
+                {
+                    rua: '#PeopleAddressStreet', numero: '#PeopleAddressNumber', bairro: '#PeopleAddressNeighborhood',
+                    cidade: '#PeopleAddressCity', cep: '#PeopleAddressPostalCode', referencia: '#PeopleAddressAddressReference'
+                }
+            ];
+            const lerValor = (sel) => {
+                if (!sel) return '';
+                const el = document.querySelector(sel);
+                return el ? String(el.value || '').trim() : '';
+            };
+            for (const g of GRUPOS) {
+                const algumExiste = Object.values(g).some(sel => sel && document.querySelector(sel));
+                if (!algumExiste) continue;
+                return {
+                    rua: lerValor(g.rua), numero: lerValor(g.numero), bairro: lerValor(g.bairro),
+                    cidade: lerValor(g.cidade), cep: lerValor(g.cep), referencia: lerValor(g.referencia)
+                };
+            }
+            return null;
+        }
+
+        function temListaDeEnderecos() {
+            return !!document.querySelector('a.btn-editar, i.icon-pencil, i.fa-pencil');
+        }
+
+        // ==============================================
+        // UI
+        // ==============================================
         const info = document.createElement('div');
         info.style.cssText = 'font-size: 12px; color: #6b7280; padding: 8px 12px; background: #f3f4f6; border-left: 3px solid #000;';
-        info.textContent = 'Digite "TODOS" em Endereço Antigo para atualizar todos os endereços da lista, ou informe parte do endereço para filtrar.';
+        info.textContent = 'Digite "TODOS" em Endereço Antigo para atualizar todos os endereços da lista, ou informe parte do endereço para filtrar. Se a página não tiver lista, os campos diretos serão preenchidos. CEP e endereço se completam automaticamente (UF fixa: MG). Se a rua estiver errada, aparecem sugestões parecidas embaixo do campo.';
         container.appendChild(info);
 
-        // Campo: Endereço Antigo
+        // Campo único
+        const endCompletoGroup = document.createElement('div');
+        const endCompletoLabel = document.createElement('label');
+        endCompletoLabel.textContent = '✍️ Endereço completo (rua , numero , bairro , cidade , cep , ref):';
+        endCompletoLabel.style.cssText = labelStyle;
+        const endCompletoInput = document.createElement('input');
+        endCompletoInput.type = 'text';
+        endCompletoInput.placeholder = 'Rua André Gotti , 82 , centro , sao joao nepomuceno , 36680123';
+        endCompletoInput.style.cssText = inputStyle;
+        endCompletoGroup.appendChild(endCompletoLabel);
+        endCompletoGroup.appendChild(endCompletoInput);
+        container.appendChild(endCompletoGroup);
+
+        // Endereço antigo
         const endAntigoGroup = document.createElement('div');
         const endAntigoLabel = document.createElement('label');
         endAntigoLabel.textContent = '🔍 Endereço Antigo (ou TODOS):';
         endAntigoLabel.style.cssText = labelStyle;
         const endAntigoInput = document.createElement('input');
         endAntigoInput.type = 'text';
-        endAntigoInput.value = 'TODOS';
         endAntigoInput.placeholder = 'Ex: ANDRE GOTTY  ou  TODOS';
         endAntigoInput.style.cssText = inputStyle;
         endAntigoGroup.appendChild(endAntigoLabel);
@@ -778,15 +804,15 @@
         novoTitulo.style.cssText = 'font-size: 11px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.5px;';
         container.appendChild(novoTitulo);
 
-        // Campos novos
+        // 6 campos
         const camposConfig = [
-            { id: 'rua',       label: '🏠 Rua:',        placeholder: 'Ex: Rua André Gotty' },
-            { id: 'numero',    label: '🔢 Número:',      placeholder: 'Ex: 82' },
-            { id: 'bairro',    label: '🏘️ Bairro:',     placeholder: 'Ex: Centro' },
-            { id: 'cidade',    label: '🌆 Cidade:',      placeholder: 'Ex: São João Nepomuceno' },
-            { id: 'referencia',label: '📍 Referência:',  placeholder: 'Ex: Próximo ao mercado' }
+            { id: 'rua',        label: '🏠 Rua:',        placeholder: 'Ex: Rua André Gotty' },
+            { id: 'numero',     label: '🔢 Número:',      placeholder: 'Ex: 82' },
+            { id: 'bairro',     label: '🏘️ Bairro:',     placeholder: 'Ex: Centro' },
+            { id: 'cidade',     label: '🌆 Cidade:',      placeholder: 'Ex: São João Nepomuceno' },
+            { id: 'cep',        label: '📮 CEP:',         placeholder: 'Ex: 36680-000' },
+            { id: 'referencia', label: '📍 Referência:',  placeholder: 'Ex: Próximo ao mercado' }
         ];
-
         const campos = {};
         camposConfig.forEach(cfg => {
             const group = document.createElement('div');
@@ -808,46 +834,295 @@
         statusEl.style.cssText = 'font-size: 12px; color: #6b7280; min-height: 20px; font-style: italic;';
         container.appendChild(statusEl);
 
-        // Botão confirmar
+        // ==============================================
+        // Sincronização bidirecional
+        // ==============================================
+        let sincronizando = false;
+        const ORDEM = ['rua', 'numero', 'bairro', 'cidade', 'cep', 'referencia'];
+
+        const doCampoUnicoParaSeparados = () => {
+            if (sincronizando) return;
+            sincronizando = true;
+            try {
+                const parsed = parseEnderecoCompleto(endCompletoInput.value);
+                ORDEM.forEach(k => { campos[k].value = parsed[k]; });
+            } finally { sincronizando = false; }
+        };
+        const dosSeparadosParaCampoUnico = () => {
+            if (sincronizando) return;
+            sincronizando = true;
+            try { endCompletoInput.value = montarEnderecoCompleto(campos); }
+            finally { sincronizando = false; }
+        };
+
+        // ==============================================
+        // Busca de CEP (com flag pra evitar loop)
+        // ==============================================
+        let buscandoCep = false;
+
+        async function tentarCepParaEndereco() {
+            if (buscandoCep) return;
+            const cep = campos.cep.value.replace(/\D/g, '');
+            if (cep.length !== 8) return;
+            if (campos.cep.dataset.ultimoCepBuscado === cep) return;
+            campos.cep.dataset.ultimoCepBuscado = cep;
+
+            buscandoCep = true;
+            statusEl.textContent = `⏳ Buscando endereço para o CEP ${cep}...`;
+            try {
+                const dados = await cepParaEndereco(cep);
+                if (!dados) {
+                    statusEl.textContent = `⚠️ CEP ${cep} não encontrado. Endereço mantido.`;
+                    return;
+                }
+                // CEP é fonte confiável -> SOBRESCREVE rua/bairro/cidade
+                sincronizando = true;
+                try {
+                    if (dados.rua)    campos.rua.value = dados.rua;
+                    if (dados.bairro) campos.bairro.value = dados.bairro;
+                    if (dados.cidade) campos.cidade.value = dados.cidade;
+                } finally { sincronizando = false; }
+                dosSeparadosParaCampoUnico();
+                statusEl.textContent = `✅ CEP ${dados.cep} → ${dados.cidade}/${dados.uf}`;
+            } finally {
+                buscandoCep = false;
+            }
+        }
+
+        async function tentarEnderecoParaCep() {
+            if (buscandoCep) return;
+            const rua = campos.rua.value.trim();
+            const cidade = campos.cidade.value.trim();
+            if (!rua || !cidade) return;
+
+            const uf = 'MG'; // UF fixa
+
+            const chave = `${uf}|${cidade}|${rua}`;
+            if (campos.rua.dataset.ultimaBusca === chave) return;
+            campos.rua.dataset.ultimaBusca = chave;
+
+            buscandoCep = true;
+            statusEl.textContent = `⏳ Buscando CEP para "${rua}, ${cidade}/${uf}"...`;
+            try {
+                const lista = await enderecoParaCep(uf, cidade, rua);
+                if (!lista) {
+                    statusEl.textContent = '⚠️ Nenhum CEP encontrado. CEP mantido. (veja as sugestões abaixo do campo)';
+                    return;
+                }
+                if (lista.length === 1) {
+                    // achou 1 -> SOBRESCREVE o CEP (mesmo que já tenha)
+                    const d = lista[0];
+                    sincronizando = true;
+                    try {
+                        campos.cep.value = d.cep;
+                        if (d.bairro && !campos.bairro.value.trim()) campos.bairro.value = d.bairro;
+                    } finally { sincronizando = false; }
+                    dosSeparadosParaCampoUnico();
+                    statusEl.textContent = `✅ CEP ${d.cep} encontrado.`;
+                } else {
+                    // vários -> NÃO chuta, mostra amostra
+                    const amostra = lista.slice(0, 3).map(d => `${d.cep} (${d.bairro || '?'})`).join(' | ');
+                    statusEl.textContent = `⚠️ Vários CEPs (${lista.length}): ${amostra}. Digite o CEP manualmente.`;
+                }
+            } finally {
+                buscandoCep = false;
+            }
+        }
+
+        // ==============================================
+        // Sugestões fuzzy de endereço (barra embaixo do input)
+        // ==============================================
+        const semAcento = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+        const limparRua = (s) => semAcento(s).replace(/^(rua|r|avenida|av|travessa|tv|alameda|praca|pca|estrada|beco|rodovia|rod|largo|vila|vl)\s+/, '');
+
+        function dice(a, b) {
+            if (a === b) return 1;
+            if (a.length < 2 || b.length < 2) return 0;
+            const bg = (s) => { const m = new Map(); for (let i = 0; i < s.length - 1; i++) { const k = s.substr(i, 2); m.set(k, (m.get(k) || 0) + 1); } return m; };
+            const A = bg(a), B = bg(b);
+            let inter = 0;
+            A.forEach((v, k) => { if (B.has(k)) inter += Math.min(v, B.get(k)); });
+            return (2 * inter) / ((a.length - 1) + (b.length - 1));
+        }
+        function pontuar(digitado, candidato) {
+            const d = limparRua(digitado), c = limparRua(candidato);
+            let s = dice(d, c);
+            if (c.includes(d) || d.includes(c)) s = Math.max(s, 0.85);
+            // melhor casamento palavra a palavra
+            const dw = d.split(' ').filter(w => w.length >= 3), cw = c.split(' ');
+            if (dw.length) {
+                const m = dw.reduce((acc, w) => acc + Math.max(...cw.map(x => dice(w, x))), 0) / dw.length;
+                s = Math.max(s, m * 0.95);
+            }
+            return s;
+        }
+
+        const cacheSug = new Map();
+        let tokenSug = 0;
+
+        async function buscarSugestoes(rua, cidade) {
+            const base = limparRua(rua);
+            const palavras = base.split(' ').filter(w => w.length >= 3);
+            if (!palavras.length || !cidade) return [];
+            const termos = new Set();
+            palavras.forEach(w => { termos.add(w); if (w.length > 4) termos.add(w.slice(0, 4)); });
+            const lista = Array.from(termos).slice(0, 5);
+
+            const respostas = await Promise.all(lista.map(async (t) => {
+                const k = `MG|${semAcento(cidade)}|${t}`;
+                if (!cacheSug.has(k)) cacheSug.set(k, await enderecoParaCep('MG', cidade, t));
+                return cacheSug.get(k) || [];
+            }));
+
+            const unicos = new Map();
+            respostas.flat().forEach(d => { if (d && d.cep && !unicos.has(d.cep)) unicos.set(d.cep, d); });
+
+            return Array.from(unicos.values())
+                .map(d => ({ ...d, score: pontuar(rua, d.rua || '') }))
+                .filter(d => d.score >= 0.4)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 6);
+        }
+
+        const caixaSug = document.createElement('div');
+        caixaSug.style.cssText = 'display:none; border:2px solid #000; border-top:none; background:#fff; max-height:180px; overflow-y:auto; font-size:12px;';
+        endCompletoGroup.appendChild(caixaSug);
+
+        function esconderSugestoes() { caixaSug.style.display = 'none'; caixaSug.innerHTML = ''; }
+
+        function selecionarSugestao(d) {
+            sincronizando = true;
+            try {
+                campos.rua.value = d.rua || '';
+                campos.bairro.value = d.bairro || '';
+                campos.cidade.value = d.cidade || campos.cidade.value;
+                campos.cep.value = String(d.cep || '').replace(/\D/g, '');
+            } finally { sincronizando = false; }
+            // evita as buscas automáticas sobrescreverem a escolha
+            campos.cep.dataset.ultimoCepBuscado = campos.cep.value;
+            campos.rua.dataset.ultimaBusca = `MG|${campos.cidade.value.trim()}|${campos.rua.value.trim()}`;
+            dosSeparadosParaCampoUnico();
+            esconderSugestoes();
+            statusEl.textContent = `✅ Selecionado: ${d.rua} — CEP ${d.cep}`;
+        }
+
+        async function mostrarSugestoes() {
+            const rua = campos.rua.value.trim();
+            const cidade = campos.cidade.value.trim();
+            if (rua.length < 3) { esconderSugestoes(); return; }
+            if (!cidade) { statusEl.textContent = '⚠️ Informe a cidade para sugerir endereços.'; return; }
+
+            const meuToken = ++tokenSug;
+            const resultados = await buscarSugestoes(rua, cidade);
+            if (meuToken !== tokenSug) return; // resposta velha, ignora
+
+            caixaSug.innerHTML = '';
+            if (!resultados.length) { esconderSugestoes(); return; }
+
+            resultados.forEach(d => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding:8px 10px; cursor:pointer; border-top:1px solid #e5e7eb; color:#1f2937;';
+                item.textContent = `${d.rua} — ${d.bairro || '?'} (${d.cep}) · ${Math.round(d.score * 100)}%`;
+                item.addEventListener('mouseenter', () => { item.style.background = '#f3f4f6'; });
+                item.addEventListener('mouseleave', () => { item.style.background = '#fff'; });
+                item.addEventListener('mousedown', (e) => { e.preventDefault(); selecionarSugestao(d); });
+                caixaSug.appendChild(item);
+            });
+            caixaSug.style.display = 'block';
+        }
+
+        // ==============================================
+        // Listeners de sincronização + busca
+        // ==============================================
+        let debounceUnico;
+        endCompletoInput.addEventListener('input', () => {
+            clearTimeout(debounceUnico);
+            debounceUnico = setTimeout(() => {
+                doCampoUnicoParaSeparados();
+                tentarCepParaEndereco();
+                tentarEnderecoParaCep();
+                mostrarSugestoes();
+            }, 400);
+        });
+        endCompletoInput.addEventListener('blur', () => setTimeout(esconderSugestoes, 150));
+
+        ORDEM.forEach(k => {
+            let debounceCampo;
+            campos[k].addEventListener('input', () => {
+                clearTimeout(debounceCampo);
+                debounceCampo = setTimeout(() => {
+                    dosSeparadosParaCampoUnico();
+                    if (k === 'cep') tentarCepParaEndereco();
+                    if (k === 'rua' || k === 'cidade') { tentarEnderecoParaCep(); mostrarSugestoes(); }
+                }, 600);
+            });
+        });
+
+        // ==============================================
+        // Botão "Pegar endereço da página"
+        // ==============================================
+        const btnPegar = document.createElement('button');
+        btnPegar.textContent = '📥 Pegar endereço da página';
+        btnPegar.className = 'twoelve-button';
+        btnPegar.addEventListener('click', async () => {
+            const lido = lerEnderecoDaPagina();
+            if (!lido) { statusEl.textContent = '⚠️ Nenhum campo de endereço encontrado nesta página.'; return; }
+            const algumPreenchido = Object.values(lido).some(v => v.length > 0);
+            if (!algumPreenchido) { statusEl.textContent = '⚠️ Os campos da página estão vazios.'; return; }
+
+            sincronizando = true;
+            try { Object.keys(lido).forEach(k => { campos[k].value = lido[k]; }); }
+            finally { sincronizando = false; }
+            dosSeparadosParaCampoUnico();
+            statusEl.textContent = '📥 Endereço carregado da página.';
+
+            await tentarCepParaEndereco();
+            await tentarEnderecoParaCep();
+            mostrarSugestoes();
+        });
+        container.appendChild(btnPegar);
+
+        // ==============================================
+        // Botão Confirmar
+        // ==============================================
         const btnConfirmar = document.createElement('button');
         btnConfirmar.textContent = '✅ Atualizar Endereços';
         btnConfirmar.className = 'twoelve-button-primary';
-
         btnConfirmar.addEventListener('click', async () => {
             const enderecoAntigo = endAntigoInput.value.trim();
-            if (!enderecoAntigo) {
-                statusEl.textContent = '⚠️ Informe o endereço antigo ou "TODOS".';
-                return;
-            }
-
             const novosDados = {
-                rua:        campos.rua.value.trim(),
-                numero:     campos.numero.value.trim(),
-                bairro:     campos.bairro.value.trim(),
-                cidade:     campos.cidade.value.trim(),
-                referencia: campos.referencia.value.trim()
+                rua: campos.rua.value.trim(), numero: campos.numero.value.trim(),
+                bairro: campos.bairro.value.trim(), cidade: campos.cidade.value.trim(),
+                cep: campos.cep.value.trim(), referencia: campos.referencia.value.trim()
             };
-
             const algumPreenchido = Object.values(novosDados).some(v => v.length > 0);
-            if (!algumPreenchido) {
-                statusEl.textContent = '⚠️ Preencha ao menos um campo novo.';
-                return;
-            }
+            if (!algumPreenchido) { statusEl.textContent = '⚠️ Preencha ao menos um campo novo.'; return; }
 
             btnConfirmar.disabled = true;
             btnConfirmar.textContent = '⏳ Processando...';
-
-            await processarEnderecosNaPagina(enderecoAntigo, novosDados, statusEl);
-
-            btnConfirmar.disabled = false;
-            btnConfirmar.textContent = '✅ Atualizar Endereços';
+            try {
+                const preenchidosDireto = await preencherFormularioDireto(novosDados, statusEl);
+                if (temListaDeEnderecos()) {
+                    if (!enderecoAntigo) {
+                        statusEl.textContent = '⚠️ Informe o endereço antigo ou "TODOS" para atualizar a lista.';
+                    } else {
+                        await processarEnderecosNaPagina(enderecoAntigo, novosDados, statusEl);
+                    }
+                } else if (preenchidosDireto === 0) {
+                    statusEl.textContent = '⚠️ Nenhum campo de endereço encontrado nesta página.';
+                }
+            } finally {
+                btnConfirmar.disabled = false;
+                btnConfirmar.textContent = '✅ Atualizar Endereços';
+            }
         });
-
         container.appendChild(btnConfirmar);
+
         modal.setConteudoElemento(container);
         modal.setFecharCallback(() => { modalAtivo = null; });
     }
-    
+
     // ==============================================
     // 5. MODAL HUAWEI (ROUTER MANAGER)
     // ==============================================
@@ -880,7 +1155,7 @@
             btnSaveLan: "#lanipsavebtn"
         }
     };
-    
+
     async function fillFieldHuawei(el, value, win) {
         if (!el || !win) return false;
         try {
@@ -905,7 +1180,7 @@
             return false;
         }
     }
-    
+
     function clicarSalvar(doc, idEspecifico) {
         let btn = idEspecifico ? doc.querySelector(idEspecifico) : null;
         if (!btn) {
@@ -919,7 +1194,7 @@
             btn.click();
         }
     }
-    
+
     async function loginHuawei() {
         console.log('Tentando login Huawei...');
         if (window._huaweiLoginInProgress) {
@@ -949,7 +1224,7 @@
             window._huaweiLoginInProgress = false;
         }
     }
-    
+
     function executarNoGhostFrame(rota, acaoCallback) {
         return new Promise((resolve, reject) => {
             const iframe = document.createElement('iframe');
@@ -975,7 +1250,7 @@
             };
         });
     }
-    
+
     async function lerWifiExclusivo() {
         const dados = {};
         await executarNoGhostFrame(HUAWEI_CONFIG.rotas.wifi, async (doc, win) => {
@@ -994,7 +1269,7 @@
         });
         return dados;
     }
-    
+
     async function lerPPOEExclusivo() {
         const dados = {};
         await executarNoGhostFrame(HUAWEI_CONFIG.rotas.internet, (doc) => {
@@ -1008,7 +1283,7 @@
         });
         return dados;
     }
-    
+
     async function lerLanExclusivo() {
         const dados = {};
         await executarNoGhostFrame(HUAWEI_CONFIG.rotas.lan, async (doc, win) => {
@@ -1032,7 +1307,7 @@
         });
         return dados;
     }
-    
+
     async function lerTudo() {
         const [dadosWifi, dadosPPOE, dadosLAN] = await Promise.all([
             lerWifiExclusivo(),
@@ -1053,7 +1328,7 @@
         const dadosAtuais = JSON.parse(localStorage.getItem('HUAWEI_DATA') || '{}');
         localStorage.setItem('HUAWEI_DATA', JSON.stringify({ ...dadosAtuais, ...dadosCombinados }));
     }
-    
+
     async function atualizarCampo(tipo, valor, valorExtra = null) {
         let rota = "", seletor1 = "", seletor2 = "", seletorBtn = "";
         if (tipo === 'ppoeUser') { rota = HUAWEI_CONFIG.rotas.internet; seletor1 = HUAWEI_CONFIG.seletores.ppoeUser; }
@@ -1105,22 +1380,22 @@
             return false;
         });
     }
-    
+
     function abrirModalHuawei() {
         if (modalAtivo) {
             modalAtivo.fechar();
             modalAtivo = null;
         }
-        
+
         const dados = JSON.parse(localStorage.getItem('HUAWEI_DATA') || '{}');
-        
+
         const modal = new TwoelveModalBase('🌐 Huawei Router Manager');
         modalAtivo = modal;
         modal.abrir();
-        
+
         const container = document.createElement('div');
         container.style.cssText = 'display: flex; flex-direction: column; gap: 16px;';
-        
+
         const inputStyle = `
             width: 100%;
             padding: 8px 10px;
@@ -1154,15 +1429,14 @@
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 5px;
         `;
-        
-        // Wi-Fi Section
+
         const wifiCard = document.createElement('div');
         wifiCard.style.cssText = cardStyle;
         const wifiTitle = document.createElement('div');
         wifiTitle.textContent = '📶 Wi-Fi';
         wifiTitle.style.cssText = cardTitleStyle;
         wifiCard.appendChild(wifiTitle);
-        
+
         const wifi2gGroup = document.createElement('div');
         wifi2gGroup.style.marginBottom = '10px';
         const wifi2gLabel = document.createElement('label');
@@ -1176,7 +1450,7 @@
         wifi2gGroup.appendChild(wifi2gLabel);
         wifi2gGroup.appendChild(wifi2gName);
         wifiCard.appendChild(wifi2gGroup);
-        
+
         const wifi2gPassGroup = document.createElement('div');
         wifi2gPassGroup.style.marginBottom = '10px';
         const wifi2gPassLabel = document.createElement('label');
@@ -1190,7 +1464,7 @@
         wifi2gPassGroup.appendChild(wifi2gPassLabel);
         wifi2gPassGroup.appendChild(wifi2gPass);
         wifiCard.appendChild(wifi2gPassGroup);
-        
+
         const wifi5gGroup = document.createElement('div');
         wifi5gGroup.style.marginBottom = '10px';
         const wifi5gLabel = document.createElement('label');
@@ -1204,7 +1478,7 @@
         wifi5gGroup.appendChild(wifi5gLabel);
         wifi5gGroup.appendChild(wifi5gName);
         wifiCard.appendChild(wifi5gGroup);
-        
+
         const wifi5gPassGroup = document.createElement('div');
         const wifi5gPassLabel = document.createElement('label');
         wifi5gPassLabel.textContent = '5 GHz Senha:';
@@ -1217,7 +1491,7 @@
         wifi5gPassGroup.appendChild(wifi5gPassLabel);
         wifi5gPassGroup.appendChild(wifi5gPass);
         wifiCard.appendChild(wifi5gPassGroup);
-        
+
         const wifiButtons = document.createElement('div');
         wifiButtons.style.cssText = 'display: flex; gap: 8px; margin-top: 8px;';
         const btnReadWifi = document.createElement('button');
@@ -1237,15 +1511,14 @@
         wifiButtons.appendChild(btnSaveWifi5g);
         wifiCard.appendChild(wifiButtons);
         container.appendChild(wifiCard);
-        
-        // PPPoE Section
+
         const ppoeCard = document.createElement('div');
         ppoeCard.style.cssText = cardStyle;
         const ppoeTitle = document.createElement('div');
         ppoeTitle.textContent = '🔑 PPPoE';
         ppoeTitle.style.cssText = cardTitleStyle;
         ppoeCard.appendChild(ppoeTitle);
-        
+
         const ppoeUserGroup = document.createElement('div');
         ppoeUserGroup.style.marginBottom = '10px';
         const ppoeUserLabel = document.createElement('label');
@@ -1259,7 +1532,7 @@
         ppoeUserGroup.appendChild(ppoeUserLabel);
         ppoeUserGroup.appendChild(ppoeUser);
         ppoeCard.appendChild(ppoeUserGroup);
-        
+
         const ppoePassGroup = document.createElement('div');
         const ppoePassLabel = document.createElement('label');
         ppoePassLabel.textContent = 'Senha:';
@@ -1272,7 +1545,7 @@
         ppoePassGroup.appendChild(ppoePassLabel);
         ppoePassGroup.appendChild(ppoePass);
         ppoeCard.appendChild(ppoePassGroup);
-        
+
         const ppoeButtons = document.createElement('div');
         ppoeButtons.style.cssText = 'display: flex; gap: 8px; margin-top: 8px;';
         const btnReadPpoe = document.createElement('button');
@@ -1287,15 +1560,14 @@
         ppoeButtons.appendChild(btnSavePpoe);
         ppoeCard.appendChild(ppoeButtons);
         container.appendChild(ppoeCard);
-        
-        // LAN Section
+
         const lanCard = document.createElement('div');
         lanCard.style.cssText = cardStyle;
         const lanTitle = document.createElement('div');
         lanTitle.textContent = '📡 LAN & DHCP';
         lanTitle.style.cssText = cardTitleStyle;
         lanCard.appendChild(lanTitle);
-        
+
         const dhcpGroup = document.createElement('div');
         dhcpGroup.style.marginBottom = '10px';
         const dhcpLabel = document.createElement('label');
@@ -1320,7 +1592,7 @@
         dhcpGroup.appendChild(dhcpLabel);
         dhcpGroup.appendChild(dhcpRangeDiv);
         lanCard.appendChild(dhcpGroup);
-        
+
         const dnsPriGroup = document.createElement('div');
         dnsPriGroup.style.marginBottom = '10px';
         const dnsPriLabel = document.createElement('label');
@@ -1334,7 +1606,7 @@
         dnsPriGroup.appendChild(dnsPriLabel);
         dnsPriGroup.appendChild(dnsPri);
         lanCard.appendChild(dnsPriGroup);
-        
+
         const dnsSecGroup = document.createElement('div');
         const dnsSecLabel = document.createElement('label');
         dnsSecLabel.textContent = 'DNS Secundário:';
@@ -1347,7 +1619,7 @@
         dnsSecGroup.appendChild(dnsSecLabel);
         dnsSecGroup.appendChild(dnsSec);
         lanCard.appendChild(dnsSecGroup);
-        
+
         const lanButtons = document.createElement('div');
         lanButtons.style.cssText = 'display: flex; gap: 8px; margin-top: 8px;';
         const btnReadLan = document.createElement('button');
@@ -1362,28 +1634,26 @@
         lanButtons.appendChild(btnSaveLan);
         lanCard.appendChild(lanButtons);
         container.appendChild(lanCard);
-        
-        // Ações gerais
+
         const acoesDiv = document.createElement('div');
         acoesDiv.style.cssText = 'display: flex; gap: 8px; margin-top: 8px;';
-        
+
         const btnLoginHuawei = document.createElement('button');
         btnLoginHuawei.textContent = '🔑 Login Huawei';
         btnLoginHuawei.className = 'twoelve-button';
         btnLoginHuawei.style.flex = '1';
-        
+
         const btnLerTudo = document.createElement('button');
         btnLerTudo.textContent = '📥 Ler Tudo';
         btnLerTudo.className = 'twoelve-button-primary';
         btnLerTudo.style.flex = '1';
-        
+
         acoesDiv.appendChild(btnLoginHuawei);
         acoesDiv.appendChild(btnLerTudo);
         container.appendChild(acoesDiv);
-        
+
         modal.setConteudoElemento(container);
-        
-        // Eventos
+
         btnReadWifi.addEventListener('click', async () => {
             const dados = await lerWifiExclusivo();
             wifi2gName.value = dados.wifi2gName || '';
@@ -1391,31 +1661,31 @@
             wifi5gName.value = dados.wifi5gName || '';
             wifi5gPass.value = dados.wifi5gPass || '';
         });
-        
+
         btnSaveWifi2g.addEventListener('click', async () => {
             await atualizarCampo('wifi2gName', wifi2gName.value);
             await atualizarCampo('wifi2gPass', wifi2gPass.value);
             alert('Wi-Fi 2.4GHz salvo!');
         });
-        
+
         btnSaveWifi5g.addEventListener('click', async () => {
             await atualizarCampo('wifi5gName', wifi5gName.value);
             await atualizarCampo('wifi5gPass', wifi5gPass.value);
             alert('Wi-Fi 5GHz salvo!');
         });
-        
+
         btnReadPpoe.addEventListener('click', async () => {
             const dados = await lerPPOEExclusivo();
             ppoeUser.value = dados.ppoeUser || '';
             ppoePass.value = dados.ppoePass || '';
         });
-        
+
         btnSavePpoe.addEventListener('click', async () => {
             await atualizarCampo('ppoeUser', ppoeUser.value);
             await atualizarCampo('ppoePass', ppoePass.value);
             alert('PPPoE salvo!');
         });
-        
+
         btnReadLan.addEventListener('click', async () => {
             const dados = await lerLanExclusivo();
             dhcpMin.value = dados.dhcpMin || '';
@@ -1423,34 +1693,34 @@
             dnsPri.value = dados.dnsPri || '';
             dnsSec.value = dados.dnsSec || '';
         });
-        
+
         btnSaveLan.addEventListener('click', async () => {
             await atualizarCampo('dhcpRange', dhcpMin.value, dhcpMax.value);
             await atualizarCampo('dnsPri', dnsPri.value);
             await atualizarCampo('dnsSec', dnsSec.value);
             alert('Configurações LAN salvas!');
         });
-        
+
         btnLoginHuawei.addEventListener('click', async () => {
             btnLoginHuawei.textContent = '⏳...';
             await loginHuawei();
             btnLoginHuawei.textContent = '✅ OK';
             setTimeout(() => { btnLoginHuawei.textContent = '🔑 Login Huawei'; }, 1500);
         });
-        
+
         btnLerTudo.addEventListener('click', async () => {
             btnLerTudo.textContent = '⏳ Lendo...';
             await lerTudo();
             btnLerTudo.textContent = '✅ Concluído';
             setTimeout(() => { btnLerTudo.textContent = '📥 Ler Tudo'; }, 2000);
         });
-        
+
         modal.setFecharCallback(() => {
             modalAtivo = null;
             window._huaweiLoginInProgress = false;
         });
     }
-    
+
     // ==============================================
     // 6. FUNÇÕES DE TOGGLE (AUTO.JS)
     // ==============================================
@@ -1461,7 +1731,7 @@
         saudacaoPrevia: false,
         trocarAbaSaudacao: true
     };
-    
+
     chrome.storage.local.get(['autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia', 'trocarAbaSaudacao'], (result) => {
         window.TwoElveControle.autoOverlay = result.autoOverlay !== false;
         window.TwoElveControle.autoMensagem = result.autoMensagem !== false;
@@ -1471,7 +1741,6 @@
         console.log('[TwoElve] Controles carregados:', window.TwoElveControle);
     });
 
-    // Atualiza os controles quando a página de Configurações muda as automações
     chrome.runtime.onMessage.addListener((msg) => {
         if (msg && msg.action === 'twoelve-config-changed') {
             chrome.storage.local.get(['autoOverlay', 'autoMensagem', 'saudacaoMensagem', 'saudacaoPrevia', 'trocarAbaSaudacao'], (result) => {
@@ -1484,7 +1753,7 @@
             });
         }
     });
-    
+
     // ==============================================
     // 7. MODAL PRINCIPAL UTILS
     // ==============================================
@@ -1494,22 +1763,21 @@
             modalAtivo = null;
             return;
         }
-        
+
         const modal = new TwoelveModalBase('🛠️ Utilitários');
         modalAtivo = modal;
         modal.abrir();
-        
+
         const container = document.createElement('div');
         container.style.cssText = 'display: flex; flex-direction: column; gap: 16px;';
-        
-        // Botões principais
+
         const botoes = [
             { text: '🔐 Login Router', action: login, class: 'twoelve-button' },
             { text: '🔑 Login (Alternativo)', action: checkLogin, class: 'twoelve-button' },
             { text: '🌐 Huawei Manager', action: abrirModalHuawei, class: 'twoelve-button-primary' },
             { text: '📍 Editar Endereço', action: criarModalEndereco, class: 'twoelve-button' }
         ];
-        
+
         botoes.forEach(btnConfig => {
             const btn = document.createElement('button');
             btn.textContent = btnConfig.text;
@@ -1523,139 +1791,13 @@
             });
             container.appendChild(btn);
         });
-        
-        // Toggles de automação removidos — agora ficam na página de Configurações.
-
-        // ⏸️ Página: desativar/reativar a extensão nesta página
-        if (window.TwoelvePagina) {
-            const boxP = document.createElement('div');
-            boxP.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:10px;border:1px dashed var(--twoelve-borda,rgba(255,255,255,.25));border-radius:8px;';
-
-            const tituloP = document.createElement('div');
-            tituloP.textContent = '⏸️ Página';
-            tituloP.style.cssText = 'font-weight:600;font-size:13px;';
-            boxP.appendChild(tituloP);
-
-            const estadoP = document.createElement('div');
-            estadoP.style.cssText = 'font-size:12px;opacity:.85;word-break:break-all;';
-            boxP.appendChild(estadoP);
-
-            const btnP = document.createElement('button');
-            const pintarP = () => {
-                const h = window.TwoelvePagina.host() || '(desconhecido)';
-                const off = window.TwoelvePagina.desativada();
-                estadoP.textContent = h + ' — ' + (off ? 'TwoElve DESATIVADO nesta página.' : 'TwoElve ATIVO nesta página.');
-                btnP.textContent = off ? '▶️ Usar nesta página' : '⏸️ Não usar nesta página';
-                btnP.className = off ? 'twoelve-button-primary' : 'twoelve-button';
-            };
-            btnP.addEventListener('click', async () => {
-                await window.TwoelvePagina.alternar();
-                pintarP();
-                // recarrega pra toolbar/automação sumirem/aparecerem na hora
-                setTimeout(() => { try { location.reload(); } catch (e) {} }, 250);
-            });
-            pintarP();
-            boxP.appendChild(btnP);
-
-            const dicaP = document.createElement('div');
-            dicaP.style.cssText = 'font-size:11px;opacity:.7;';
-            dicaP.textContent = 'Ideal pra páginas onde Ctrl+C/Ctrl+V travam.';
-            boxP.appendChild(dicaP);
-
-            container.appendChild(boxP);
-        }
-
-        // 🖱️ Clique direito desta página — atalho para liberar/devolver o menu
-        // original do site sem precisar ir nas Configurações.
-        if (window.TwoelveDireito) {
-            const boxP = document.createElement('div');
-            boxP.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:10px;border:1px dashed var(--twoelve-borda,rgba(255,255,255,.25));border-radius:8px;';
-
-            const tituloP = document.createElement('div');
-            tituloP.textContent = '⏸️ Página';
-            tituloP.style.cssText = 'font-weight:600;font-size:13px;';
-            boxP.appendChild(tituloP);
-
-            const estadoP = document.createElement('div');
-            estadoP.style.cssText = 'font-size:12px;opacity:.85;word-break:break-all;';
-            boxP.appendChild(estadoP);
-
-            const btnP = document.createElement('button');
-            const pintarP = () => {
-                const h = window.TwoelvePagina.host() || '(desconhecido)';
-                const off = window.TwoelvePagina.desativada();
-                estadoP.textContent = h + ' — ' + (off ? 'TwoElve DESATIVADO nesta página.' : 'TwoElve ATIVO nesta página.');
-                btnP.textContent = off ? '▶️ Usar nesta página' : '⏸️ Não usar nesta página';
-                btnP.className = off ? 'twoelve-button-primary' : 'twoelve-button';
-            };
-            btnP.addEventListener('click', async () => {
-                await window.TwoelvePagina.alternar();
-                pintarP();
-                setTimeout(() => { try { location.reload(); } catch (e) {} }, 250);
-            });
-            pintarP();
-            boxP.appendChild(btnP);
-
-            const dicaP = document.createElement('div');
-            dicaP.style.cssText = 'font-size:11px;opacity:.7;';
-            dicaP.textContent = 'Ideal pra páginas onde Ctrl+C/Ctrl+V travam.';
-            boxP.appendChild(dicaP);
-
-            container.appendChild(boxP);
-        }
-
-        // 🖱️ Clique direito desta página — atalho para liberar/devolver o menu
-        // original do site sem precisar ir nas Configurações.
-        if (window.TwoelveDireito) {
-            const box = document.createElement('div');
-            box.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:10px;border:1px dashed var(--twoelve-borda,rgba(255,255,255,.25));border-radius:8px;';
-
-            const titulo = document.createElement('div');
-            titulo.textContent = '🖱️ Clique direito';
-            titulo.style.cssText = 'font-weight:600;font-size:13px;';
-            box.appendChild(titulo);
-
-            const estado = document.createElement('div');
-            estado.style.cssText = 'font-size:12px;opacity:.85;word-break:break-all;';
-            box.appendChild(estado);
-
-            const pintar = () => {
-                const h = window.TwoelveDireito.chave() || '(desconhecido)';
-                const livre = window.TwoelveDireito.liberada();
-                const globalOn = window.TwoelveDireito.globalAtivo();
-                estado.textContent = h + ' — ' + (livre
-                    ? 'usando o clique direito original do site.'
-                    : (globalOn ? 'o TwoElve segura o botão direito (menu do navegador).' : 'TwoElve desligado — menu original do site.'));
-                btnDireito.textContent = livre ? '🔒 Voltar a segurar aqui' : '✅ Usar o clique direito desta página';
-                btnDireito.className = livre ? 'twoelve-button' : 'twoelve-button-primary';
-            };
-
-            const btnDireito = document.createElement('button');
-            btnDireito.addEventListener('click', async () => {
-                const liberou = await window.TwoelveDireito.alternar();
-                pintar();
-                console.log(liberou
-                    ? '[TwoElve] 🖱️ Menu original do site liberado nesta página (dá um F5 se não mudar na hora).'
-                    : '[TwoElve] 🖱️ TwoElve voltou a segurar o botão direito nesta página.');
-            });
-
-            pintar();
-            box.appendChild(btnDireito);
-
-            const dica = document.createElement('div');
-            dica.style.cssText = 'font-size:11px;opacity:.7;';
-            dica.textContent = 'Fica salvo nesta página — ou em Configurações → 🖱️ Clique direito.';
-            box.appendChild(dica);
-
-            container.appendChild(box);
-        }
 
         modal.setConteudoElemento(container);
         modal.setFecharCallback(() => {
             modalAtivo = null;
         });
     }
-    
+
     // ==============================================
     // 8. INICIALIZAÇÃO
     // ==============================================
@@ -1663,5 +1805,5 @@
         window.abrirModalUtils = abrirModalUtils;
         console.log('✅ Utils.js v6.0 carregado');
     })();
-    
+
 })();
