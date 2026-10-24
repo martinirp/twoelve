@@ -557,6 +557,7 @@
             // Preenche os campos solicitados
             if (novosDados.rua)        await preencherCampoERP('#PeopleAddressStreet',          novosDados.rua);
             if (novosDados.numero)     await preencherCampoERP('#PeopleAddressNumber',           novosDados.numero);
+            if (novosDados.complemento) await preencherCampoERP('#PeopleAddressAddressComplement', novosDados.complemento);
             if (novosDados.bairro)     await preencherCampoERP('#PeopleAddressNeighborhood',     novosDados.bairro);
             if (novosDados.cidade)     await preencherCampoERP('#PeopleAddressCity',             novosDados.cidade);
             if (novosDados.cep)        await preencherCampoERP('#PeopleAddressPostalCode',       novosDados.cep);
@@ -631,10 +632,10 @@
         // Parser / montador
         // ==============================================
         function parseEnderecoCompleto(texto) {
-            const resultado = { rua: '', numero: '', bairro: '', cidade: '', cep: '', referencia: '' };
+            const resultado = { rua: '', numero: '', complemento: '', bairro: '', cidade: '', cep: '', referencia: '' };
             if (!texto) return resultado;
             const pedacos = String(texto).split(',').map(p => p.trim());
-            const ordem = ['rua', 'numero', 'bairro', 'cidade', 'cep', 'referencia'];
+            const ordem = ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'cep', 'referencia'];
             ordem.forEach((campo, i) => {
                 if (i < pedacos.length && pedacos[i] !== '') resultado[campo] = pedacos[i];
             });
@@ -644,6 +645,7 @@
             return [
                 campos.rua.value.trim(),
                 campos.numero.value.trim(),
+                campos.complemento ? campos.complemento.value.trim() : '',
                 campos.bairro.value.trim(),
                 campos.cidade.value.trim(),
                 campos.cep.value.trim(),
@@ -697,8 +699,8 @@
         // ==============================================
         async function preencherFormularioDireto(novosDados, statusEl) {
             const MAPA = {
-                rua: '#PersonStreet', numero: '#PersonNumber', bairro: '#PersonNeighborhood',
-                cidade: '#PersonCity', cep: null, referencia: '#PersonAddressReference'
+                rua: '#PersonStreet', numero: '#PersonNumber', complemento: '#PersonAddressComplement',
+                bairro: '#PersonNeighborhood', cidade: '#PersonCity', cep: null, referencia: '#PersonAddressReference'
             };
             let preenchidos = 0;
             for (const [campo, seletor] of Object.entries(MAPA)) {
@@ -721,12 +723,12 @@
         function lerEnderecoDaPagina() {
             const GRUPOS = [
                 {
-                    rua: '#PersonStreet', numero: '#PersonNumber', bairro: '#PersonNeighborhood',
-                    cidade: '#PersonCity', cep: null, referencia: '#PersonAddressReference'
+                    rua: '#PersonStreet', numero: '#PersonNumber', complemento: '#PersonAddressComplement',
+                    bairro: '#PersonNeighborhood', cidade: '#PersonCity', cep: null, referencia: '#PersonAddressReference'
                 },
                 {
-                    rua: '#PeopleAddressStreet', numero: '#PeopleAddressNumber', bairro: '#PeopleAddressNeighborhood',
-                    cidade: '#PeopleAddressCity', cep: '#PeopleAddressPostalCode', referencia: '#PeopleAddressAddressReference'
+                    rua: '#PeopleAddressStreet', numero: '#PeopleAddressNumber', complemento: '#PeopleAddressAddressComplement',
+                    bairro: '#PeopleAddressNeighborhood', cidade: '#PeopleAddressCity', cep: '#PeopleAddressPostalCode', referencia: '#PeopleAddressAddressReference'
                 }
             ];
             const lerValor = (sel) => {
@@ -738,8 +740,8 @@
                 const algumExiste = Object.values(g).some(sel => sel && document.querySelector(sel));
                 if (!algumExiste) continue;
                 return {
-                    rua: lerValor(g.rua), numero: lerValor(g.numero), bairro: lerValor(g.bairro),
-                    cidade: lerValor(g.cidade), cep: lerValor(g.cep), referencia: lerValor(g.referencia)
+                    rua: lerValor(g.rua), numero: lerValor(g.numero), complemento: lerValor(g.complemento),
+                    bairro: lerValor(g.bairro), cidade: lerValor(g.cidade), cep: lerValor(g.cep), referencia: lerValor(g.referencia)
                 };
             }
             return null;
@@ -793,14 +795,15 @@
         novoTitulo.style.cssText = 'font-size: 11px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.5px;';
         container.appendChild(novoTitulo);
 
-        // 6 campos
+        // 7 campos (incluindo complemento abaixo do número)
         const camposConfig = [
-            { id: 'rua',        label: '🏠 Rua:',        placeholder: 'Ex: Rua André Gotty' },
-            { id: 'numero',     label: '🔢 Número:',      placeholder: 'Ex: 82' },
-            { id: 'bairro',     label: '🏘️ Bairro:',     placeholder: 'Ex: Centro' },
-            { id: 'cidade',     label: '🌆 Cidade:',      placeholder: 'Ex: São João Nepomuceno' },
-            { id: 'cep',        label: '📮 CEP:',         placeholder: 'Ex: 36680-000' },
-            { id: 'referencia', label: '📍 Referência:',  placeholder: 'Ex: Próximo ao mercado' }
+            { id: 'rua',         label: '🏠 Rua:',         placeholder: 'Ex: Rua André Gotty' },
+            { id: 'numero',      label: '🔢 Número:',       placeholder: 'Ex: 82' },
+            { id: 'complemento', label: '🚪 Complemento:',  placeholder: 'Ex: Apto 101, Bloco B, Fundos' },
+            { id: 'bairro',      label: '🏘️ Bairro:',      placeholder: 'Ex: Centro' },
+            { id: 'cidade',      label: '🌆 Cidade:',       placeholder: 'Ex: São João Nepomuceno' },
+            { id: 'cep',         label: '📮 CEP:',          placeholder: 'Ex: 36680-000' },
+            { id: 'referencia',  label: '📍 Referência:',   placeholder: 'Ex: Próximo ao mercado' }
         ];
         const campos = {};
         camposConfig.forEach(cfg => {
@@ -827,7 +830,7 @@
         // Sincronização bidirecional
         // ==============================================
         let sincronizando = false;
-        const ORDEM = ['rua', 'numero', 'bairro', 'cidade', 'cep', 'referencia'];
+        const ORDEM = ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'cep', 'referencia'];
 
         const doCampoUnicoParaSeparados = () => {
             if (sincronizando) return;
@@ -1082,6 +1085,7 @@
             const enderecoAntigo = endAntigoInput.value.trim();
             const novosDados = {
                 rua: campos.rua.value.trim(), numero: campos.numero.value.trim(),
+                complemento: campos.complemento ? campos.complemento.value.trim() : '',
                 bairro: campos.bairro.value.trim(), cidade: campos.cidade.value.trim(),
                 cep: campos.cep.value.trim(), referencia: campos.referencia.value.trim()
             };
