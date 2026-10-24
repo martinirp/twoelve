@@ -149,8 +149,10 @@
   }
 
   function getSelecao() {
-    const b = $('config-branch').value; // 'main' | 'dev'
-    return { instalar: b === 'dev' ? 'dev' : 'main', selecao: b === 'dev' ? 'dev' : 'main' };
+    const b = $('config-branch').value; // 'use' | 'main' | 'dev'
+    if (b === 'dev') return { instalar: 'dev', selecao: 'dev' };
+    if (b === 'use') return { instalar: 'main', selecao: 'use' };
+    return { instalar: 'main', selecao: 'main' };
   }
 
   async function salvarSelecao(selecao) {
@@ -1223,7 +1225,7 @@
     try {
       const res = await chrome.storage.local.get(['twoelveUpdateBranches']);
       const sel = res.twoelveUpdateBranches && res.twoelveUpdateBranches.selecionada;
-      $('config-branch').value = sel === 'dev' ? 'dev' : 'main';
+      $('config-branch').value = sel === 'dev' ? 'dev' : (sel === 'use' ? 'use' : 'main');
     } catch (e) {}
 
     $('config-branch').addEventListener('change', () => salvarSelecao($('config-branch').value));

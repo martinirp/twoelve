@@ -13,7 +13,7 @@
     if (window.top !== window) return; // só no frame principal
 
     const manifest = (chrome.runtime.getManifest && chrome.runtime.getManifest()) || {};
-    const BRANCH = manifest.twoelveBranch || 'main';
+    const BRANCH = (manifest.twoelveBranch === 'use') ? 'main' : (manifest.twoelveBranch || 'main');
 
     function criarEstilos() {
         const style = document.createElement('style');

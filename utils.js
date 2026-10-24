@@ -496,18 +496,59 @@
     }
 
     // Função principal: abre modal de cada endereço, preenche e confirma
+        // Aplica cor visual em uma linha da tabela de endereços e suas células
+    function pintarLinhaEndereco(row, estado) {
+        if (!row) return;
+        let bg = '';
+        let border = '';
+        if (estado === 'cinza' || estado === 'mapeado') {
+            // Cinza claro suave indicando que foi mapeado para alteração
+            bg = '#f1f5f9';
+            border = '1px solid #cbd5e1';
+        } else if (estado === 'processando') {
+            // Destaque visual enquanto o modal do ERP está aberto / salvando
+            bg = '#e0f2fe';
+            border = '1px solid #38bdf8';
+        } else if (estado === 'verde' || estado === 'sucesso') {
+            // Verde claro suave indicando alteração salva com sucesso
+            bg = '#dcfce7';
+            border = '1px solid #86efac';
+        } else if (estado === 'erro') {
+            bg = '#fee2e2';
+            border = '1px solid #fca5a5';
+        }
+
+        row.style.setProperty('background-color', bg, 'important');
+        row.style.setProperty('transition', 'background-color 0.3s ease, border 0.3s ease');
+        if (border) row.style.setProperty('outline', border, 'important');
+
+        const tds = row.querySelectorAll('td');
+        tds.forEach(td => {
+            td.style.setProperty('background-color', bg, 'important');
+            td.style.setProperty('transition', 'background-color 0.3s ease');
+        });
+    }
+
+    // Obtém identificador estável para a linha da tabela (mesmo com recargas AJAX)
+    function obterChaveLinhaEndereco(row, indexPadrao) {
+        if (!row) return 'idx:' + indexPadrao;
+        if (row.id) return 'id:' + row.id;
+        const btn = row.querySelector('.btn-editar, [class*="btn-editar"], a[href*="edit"], i.icon-pencil, i.fa-pencil');
+        const link = btn ? (btn.closest('a') || btn) : null;
+        if (link && link.getAttribute('href')) return 'href:' + link.getAttribute('href');
+        if (row.getAttribute('data-id')) return 'data-id:' + row.getAttribute('data-id');
+        return 'idx:' + indexPadrao;
+    }
+
+    // Função principal: faz o mapeamento prévio, pinta de cinza e, após alterar, passa para verde
     async function processarEnderecosNaPagina(enderecoAntigo, novosDados, statusEl) {
-        console.log('--- INICIANDO PROCESSAMENTO DE ENDEREÇOS ---');
+        console.log('--- INICIANDO PROCESSAMENTO DE ENDEREÇOS COM MAPEAMENTO ---');
         console.log('Filtro (antigo):', enderecoAntigo);
         console.log('Novos dados:', novosDados);
 
         const filtrarTodos = enderecoAntigo.trim().toUpperCase() === 'TODOS';
-        let processados = 0;
-        let encontrados = 0;
         
-        // Em vez de pegar todas as linhas uma vez só, pegamos a quantidade total e iteramos.
-        // O ERP recarrega a tabela (AJAX) após cada salvamento, então os elementos <tr> ficam obsoletos.
-        // Precisamos buscar o <tr> novamente a cada iteração.
+        // Função para obter linhas atualizadas do DOM que possuem botão de editar
         const getRows = () => Array.from(document.querySelectorAll('table tbody tr')).filter(r => r.querySelector('a.btn-editar') || r.querySelector('i.icon-pencil, i.fa-pencil'));
         
         let initialRows = getRows();
@@ -517,56 +558,93 @@
             return;
         }
 
-        console.log(`Total de linhas de endereço encontradas inicialmente: ${initialRows.length}`);
-        let limit = initialRows.length; // Quantidade de linhas para processar
-        let rowIndex = 0;
+        // ==========================================
+        // ETAPA 1: MAPEAMENTO PRÉVIO E COR CINZA CLARO
+        // ==========================================
+        statusEl.textContent = '🔍 Mapeando endereços compatíveis...';
+        const mapeados = [];
 
-        while (rowIndex < limit) {
-            // Busca as linhas fresquinhas do DOM
+        for (let i = 0; i < initialRows.length; i++) {
+            const row = initialRows[i];
+            const textoLinha = lerEnderecoLinha(row);
+            const chave = obterChaveLinhaEndereco(row, i);
+
+            if (filtrarTodos || enderecoCompativel(enderecoAntigo, textoLinha)) {
+                mapeados.push({
+                    indexOriginal: i,
+                    chave: chave,
+                    textoOriginal: textoLinha
+                });
+                // Troca a cor do item para cinza claro antes de mudar
+                pintarLinhaEndereco(row, 'mapeado');
+                console.log(`[Mapeamento] Linha ${i} mapeada (cinza claro): "${textoLinha}"`);
+            }
+        }
+
+        if (mapeados.length === 0) {
+            statusEl.textContent = `⚠️ Nenhum endereço correspondente a "${enderecoAntigo}" encontrado.`;
+            return;
+        }
+
+        statusEl.textContent = `📋 ${mapeados.length} endereço(s) mapeado(s). Iniciando atualização...`;
+        await wait(600); // Pausa breve para o usuário visualizar o mapeamento em cinza claro
+
+        // ==========================================
+        // ETAPA 2: PROCESSAMENTO SEQUENCIAL E COR VERDE
+        // ==========================================
+        const concluidos = new Set();
+        let processados = 0;
+
+        for (let m = 0; m < mapeados.length; m++) {
+            const itemMapeado = mapeados[m];
+            statusEl.textContent = `🔄 Atualizando ${m + 1} de ${mapeados.length} endereço(s)...`;
+
+            // O ERP pode recarregar a tabela via AJAX. Buscamos as linhas atuais do DOM:
             const currentRows = getRows();
-            if (rowIndex >= currentRows.length) {
-                console.log('A tabela diminuiu de tamanho ou sumiu. Parando.');
-                break;
+
+            // Re-aplica as cores já estabelecidas nas linhas da tabela atualizada
+            currentRows.forEach((r, idx) => {
+                const k = obterChaveLinhaEndereco(r, idx);
+                if (concluidos.has(k)) {
+                    pintarLinhaEndereco(r, 'verde');
+                } else if (mapeados.some(x => x.chave === k)) {
+                    pintarLinhaEndereco(r, 'mapeado');
+                }
+            });
+
+            // Localiza a linha correspondente a este item mapeado
+            let row = currentRows.find((r, idx) => obterChaveLinhaEndereco(r, idx) === itemMapeado.chave);
+            if (!row && itemMapeado.indexOriginal < currentRows.length) {
+                row = currentRows[itemMapeado.indexOriginal];
             }
 
-            const row = currentRows[rowIndex];
-            const textoLinha = lerEnderecoLinha(row);
-            console.log(`Linha ${rowIndex} texto extraído: "${textoLinha}"`);
-
-            // Se não bate com o filtro, só avança pra próxima linha
-            if (!filtrarTodos && !enderecoCompativel(enderecoAntigo, textoLinha)) {
-                console.log(`Linha ${rowIndex} ignorada (não corresponde ao filtro).`);
-                rowIndex++;
+            if (!row) {
+                console.warn(`Linha correspondente ao item ${m + 1} não encontrada no DOM.`);
                 continue;
             }
 
-            encontrados++;
-            statusEl.textContent = `🔄 Processando endereço ${encontrados}...`;
-            console.log(`Processando linha ${rowIndex} (Encontrado #${encontrados})`);
+            // Destaca a linha atual em processamento
+            pintarLinhaEndereco(row, 'processando');
 
             // Clica no lápis para abrir o modal de edição
             const clicou = clicarLapisLinha(row);
             if (!clicou) {
-                console.warn(`Não foi possível clicar no botão editar na linha ${rowIndex}`);
-                rowIndex++;
+                console.warn(`Não foi possível clicar no botão editar do item ${m + 1}`);
+                pintarLinhaEndereco(row, 'erro');
                 continue;
             }
 
-            console.log('Aguardando modal ERP abrir...');
+            console.log(`Aguardando modal ERP abrir para item ${m + 1}...`);
             const modal = await aguardarModalERP(5000);
             if (!modal) {
-                console.warn(`Modal não abriu no tempo esperado para linha ${rowIndex}`);
-                rowIndex++;
+                console.warn(`Modal não abriu no tempo esperado para item ${m + 1}`);
+                pintarLinhaEndereco(row, 'erro');
                 continue;
             }
-            console.log('Modal aberto com sucesso!');
 
-            // O pulo do gato: o ERP faz uma requisição AJAX para buscar os dados do endereço.
-            // Se o nosso robô digitar rápido demais, o ERP apaga o nosso texto quando a requisição termina.
-            // Vamos aguardar o campo "Rua" ser preenchido com o endereço antigo antes de sobreescrevermos.
-            console.log('Aguardando carregamento dos dados do servidor...');
+            // Aguarda o carregamento dos dados pelo AJAX do ERP
             let tentativasCarregamento = 0;
-            while (tentativasCarregamento < 25) { // Espera até 5 segundos
+            while (tentativasCarregamento < 25) {
                 const streetField = document.querySelector('#PeopleAddressStreet');
                 if (streetField && streetField.value.trim().length > 0) {
                     break;
@@ -574,13 +652,13 @@
                 await wait(200);
                 tentativasCarregamento++;
             }
-            await wait(500); // Uma pequena margem de segurança após o carregamento
+            await wait(500);
 
-            // Preenche os campos
-            if (novosDados.rua)       await preencherCampoERP('#PeopleAddressStreet',          novosDados.rua);
-            if (novosDados.numero)    await preencherCampoERP('#PeopleAddressNumber',           novosDados.numero);
-            if (novosDados.bairro)    await preencherCampoERP('#PeopleAddressNeighborhood',     novosDados.bairro);
-            if (novosDados.cidade)    await preencherCampoERP('#PeopleAddressCity',             novosDados.cidade);
+            // Preenche os campos solicitados
+            if (novosDados.rua)        await preencherCampoERP('#PeopleAddressStreet',          novosDados.rua);
+            if (novosDados.numero)     await preencherCampoERP('#PeopleAddressNumber',           novosDados.numero);
+            if (novosDados.bairro)     await preencherCampoERP('#PeopleAddressNeighborhood',     novosDados.bairro);
+            if (novosDados.cidade)     await preencherCampoERP('#PeopleAddressCity',             novosDados.cidade);
             if (novosDados.referencia) await preencherCampoERP('#PeopleAddressAddressReference', novosDados.referencia);
 
             // Clica em Confirmar
@@ -599,36 +677,42 @@
             if (confirmarBtn) {
                 confirmarBtn.click();
                 await aguardarModalFechar(5000);
-                await wait(1000); // aguarda 1 segundo inteiro para a tabela recarregar com ajax
-                
-                // --- VERIFICAÇÃO SE ALTEROU ---
-                // Pegamos a linha novamente para checar se o novo texto está lá
-                const verifyRows = getRows();
-                if (rowIndex < verifyRows.length) {
-                    const textoLinhaVerify = lerEnderecoLinha(verifyRows[rowIndex]);
-                    if (novosDados.rua && !textoLinhaVerify.includes(novosDados.rua.trim().toLowerCase())) {
-                        console.error(`⚠️ O endereço na linha ${rowIndex} falhou na verificação final (esperava: ${novosDados.rua}).`);
-                        statusEl.textContent = `⚠️ Atenção: A rua "${novosDados.rua}" parece não ter sido salva pelo ERP.`;
-                    }
+                await wait(1000); // aguarda a tabela recarregar com ajax
+
+                // Marca como concluído com sucesso
+                concluidos.add(itemMapeado.chave);
+
+                // Busca a linha atualizada na tabela recarregada e MUDA A COR PARA VERDE
+                const refreshedRows = getRows();
+                let updatedRow = refreshedRows.find((r, idx) => obterChaveLinhaEndereco(r, idx) === itemMapeado.chave);
+                if (!updatedRow && itemMapeado.indexOriginal < refreshedRows.length) {
+                    updatedRow = refreshedRows[itemMapeado.indexOriginal];
                 }
-                
+                if (updatedRow) {
+                    pintarLinhaEndereco(updatedRow, 'verde');
+                }
+
                 processados++;
             } else {
                 console.warn('Botão Confirmar não encontrado no modal ERP');
                 document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                 await aguardarModalFechar(3000);
+                pintarLinhaEndereco(row, 'erro');
             }
-            
-            // Independente de sucesso ou erro, avançamos o índice para não ficar num loop infinito
-            // Caso a ordenação mude muito, isso pode pular alguns. Mas garante que não trava.
-            rowIndex++;
         }
 
-        if (processados === 0 && encontrados === 0) {
-            statusEl.textContent = `⚠️ Nenhum endereço correspondente a "${enderecoAntigo}" encontrado.`;
-        } else {
-            statusEl.textContent = `✅ ${processados} endereço(s) atualizado(s) com sucesso!`;
-        }
+        // ==========================================
+        // FINALIZAÇÃO: REAPLICA VERDE EM TODOS OS CONCLUÍDOS
+        // ==========================================
+        const finalRows = getRows();
+        finalRows.forEach((r, idx) => {
+            const k = obterChaveLinhaEndereco(r, idx);
+            if (concluidos.has(k)) {
+                pintarLinhaEndereco(r, 'verde');
+            }
+        });
+
+        statusEl.textContent = `✅ ${processados} de ${mapeados.length} endereço(s) atualizado(s) com sucesso!`;
     }
 
     function criarModalEndereco() {
@@ -677,6 +761,7 @@
         endAntigoLabel.style.cssText = labelStyle;
         const endAntigoInput = document.createElement('input');
         endAntigoInput.type = 'text';
+        endAntigoInput.value = 'TODOS';
         endAntigoInput.placeholder = 'Ex: ANDRE GOTTY  ou  TODOS';
         endAntigoInput.style.cssText = inputStyle;
         endAntigoGroup.appendChild(endAntigoLabel);
